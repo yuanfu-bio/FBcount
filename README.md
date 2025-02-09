@@ -1,2 +1,2 @@
 # FBcount
-A tools for Feature Barcode Counting.
+Tools for Feature Barcode Counting.
