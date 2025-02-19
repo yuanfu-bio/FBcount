@@ -1,0 +1,46 @@
+{
+    "barcode": {
+        "SB2": [
+            "r1",
+            15,
+            30,
+            "TCATAGGT",
+            "GAGGACCG",
+            "/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBranger_1.0.3/whitelist/SB_2.txt"
+        ],
+        "SB1": [
+            "r1",
+            45,
+            60,
+            "GTTAGTTG",
+            "AGACCATG",
+            "/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBranger_1.0.3/whitelist/SB_1.txt"
+        ],
+        "FB": [
+            "r2",
+            0,
+            15,
+            "",
+            "",
+            "/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBranger_1.0.3/whitelist/FB-10k.txt"
+        ]
+    },
+    "barcode_struct": {
+        "barcode1": [
+            "SB2",
+            "SB1"
+        ],
+        "barcode2": [
+            "FB"
+        ]
+    },
+    "umi": {
+        "1": [
+            "r2",
+            15,
+            25
+        ]
+    },
+    "feature_barcode": "/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBranger_1.0.3/whitelist/FB-10k.fa",
+    "feature_barcode_info": "/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount_1.0.0/01_whitelist/FB-Ag-AAF038.tsv"
+}

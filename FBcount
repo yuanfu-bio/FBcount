@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Function to print help message
+print_help() {
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  -i, --input_dir <path>       Specify the input file path"
+    echo "  -o, --output_dir <path>      Specify the output file path"
+    echo "  -c, --config <file>      Specify the configuration file"
+    echo "  -h, --help               Display this help message"
+}
+
+# Initialize variables
+input_dir=""
+output_dir=""
+config=""
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        -i|--input_dir)
+            input_dir="$2"
+            shift 2
+            ;;
+        -o|--output_dir)
+            output_dir="$2"
+            shift 2
+            ;;
+        -c|--config)
+            config="$2"
+            shift 2
+            ;;
+        *)
+            echo "Invalid argument: $1"
+            print_help
+            exit 1
+            ;;
+    esac
+done
+
+# Check if required arguments are provided
+if [[ -z "$input_dir" ]] || [[ -z "$output_dir" ]] || [[ -z "$config" ]]; then
+    echo "Error: You must specify --input_dir, --output_dir, and --config options."
+    print_help
+    exit 1
+fi
+
+# Check if output path is a directory or a file
+if [[ ! -d "$input_dir" ]]; then
+    echo "Error: Input path does not exist: $input_dir"
+    exit 1
+fi
+
+samples="$(ls ${input_dir})"
+
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+cd $SCRIPT_DIR
+
+for sample in ${samples};do
+    echo "Run pipeline for ${sample}..."
+    ./00_scripts/FBcount.sh "$input_dir" "$output_dir" "$sample" "$config" &
+done
+wait
+
+# 汇总数据
+echo "start step 4, barcode validation."
+./00_scripts/summary.py \
+    -s "${samples}" \
+    -o "${output_dir}" \
+    -c "${config}"
+
+
+# # Run Saturation Correction
+# echo "start step 5, Saturation Correction."
+# ./00_scripts/correct_saturation.py \
+#     -s "${samples}" \
+#     -o "${output_dir}" \
+#     -c "${config}"
