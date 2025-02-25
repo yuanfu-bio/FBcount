@@ -1,0 +1,5 @@
+numpy==2.2.3
+pandas==2.2.3
+xlsxwriter==3.2.2
+jq==1.8.0
+cutadapt==5.0

@@ -9,10 +9,10 @@ output_dir=$2
 sample=$3
 config=$4
 
-echo "input_dir: $input_dir"
-echo "output_dir: $output_dir"
-echo "sample: $sample"
-echo "config: $config"
+# echo "input_dir: $input_dir"
+# echo "output_dir: $output_dir"
+# echo "sample: $sample"
+# echo "config: $config"
 
 # 1. 初始化变量, 切换到工作目录, 创建结果目录
 echo "start step 1."
@@ -73,7 +73,7 @@ wait
 echo "correct barcodes of ${sample}"
 # 批量barcode校正
 if [ ! -s ${log_dir}/${sample}_correct_attach.log ]; then
-    ./00_scripts/correct_barcodes.py \
+    ./scripts/correct_barcodes.py \
         -f ${barcode_dir} \
         -s ${sample} \
         -r1 ${raw_r1} \
@@ -86,7 +86,7 @@ fi
 echo "start step 3, generate r1 and r2 need for umi correct."
 if [ ! -s ${log_dir}/${sample}_gen_input_fastqs.log ]
 then
-    ./00_scripts/gen_input_fastqs.py \
+    ./scripts/gen_input_fastqs.py \
         -s ${sample} \
         -r1 ${raw_r1} \
         -r2 ${raw_r2} \
@@ -101,7 +101,7 @@ fi
 echo "start step 5, UMI correct."
 if [ ! -s ${counts_dir}/${sample}.log ]
 then
-    python ./00_scripts/count_UMI.py \
+    python ./scripts/count_UMI.py \
         -i ${fastqs_dir} \
         -o ${counts_dir} \
         -s ${sample} \
@@ -114,7 +114,7 @@ fi
 echo "start step 5, UMI correct."
 if [ ! -s ${counts_dir}/${sample}_Saturation.tsv ]
 then
-    ./00_scripts/calculate_saturation.py \
+    ./scripts/calculate_saturation.py \
         -i ${counts_dir} \
         -s ${sample} \
         -c ${config}

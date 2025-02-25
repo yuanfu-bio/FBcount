@@ -1,10 +1,11 @@
-#!/work/xulab/xulab-seq/miniconda3/bin/python
+#!/usr/bin/env python3
 
 import os
 import gzip
 import json
 import argparse
 import pickle
+from utils import read_fq, read_json_config
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Generate input fastqs.")
@@ -16,11 +17,6 @@ def setup_and_parse_args():
     parser.add_argument("-c", "--config", required=True, help="Path to the json file")
     args = parser.parse_args()
     return args
-
-def read_json_config(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    return config
 
 def parse_json_config(config):
     # 提取 barcode 信息
@@ -46,20 +42,6 @@ def parse_json_config(config):
 
     return barcode1, barcode2, umi_info, per_barcode1_len, per_barcode2_len
 
-def read_fastq(file_path):
-    open_func = gzip.open if file_path.endswith('.gz') else open
-
-    with open_func(file_path, 'rt') as file:
-        while True:
-            name = file.readline().strip()
-            if not name:
-                break
-            name = name[1:].split("/")[0].split(" ")[0]
-            seq = file.readline().strip()
-            file.readline()  # Skip the '+'
-            qual = file.readline().strip()
-            yield name, seq, qual
-
 def get_umi(umi_info, r1_seq, r2_seq, r1_qual, r2_qual):
     umi_seq = []  # 用于存储提取的 UMI 序列片段
     umi_qual = []  # 用于存储提取的 UMI 质量值片段
@@ -83,7 +65,8 @@ def get_umi(umi_info, r1_seq, r2_seq, r1_qual, r2_qual):
     return seq, qual
 
 
-def main():
+if __name__=="__main__":
+
     args = setup_and_parse_args()
 
     sample = args.sample
@@ -115,7 +98,7 @@ def main():
     out_r1, out_r2 = os.path.join(out, f"{sample}_r1.fq.gz"), os.path.join(out, f"{sample}_r2.fq.gz")
     with gzip.open(out_r1, 'wt') as out1, gzip.open(out_r2, "wt") as out2:
         count, valid = 0, 0
-        for (name, seq_r1, qual_r1), (_, seq_r2, qual_r2) in zip(read_fastq(raw_r1), read_fastq(raw_r2)):
+        for (name, seq_r1, qual_r1), (_, seq_r2, qual_r2) in zip(read_fq(raw_r1), read_fq(raw_r2)):
             count += 1
             if count % 1000000 == 0:
                 print(f"processed {count}.")
@@ -153,6 +136,3 @@ def main():
 
     with open(os.path.join(logs, f"{sample}_gen_input_fastqs.log"), "w") as file:
         file.write(f"total reads: {count}, valid reads: {valid}.\n")
-
-if __name__=="__main__":
-    main()

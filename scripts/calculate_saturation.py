@@ -1,10 +1,11 @@
-#! /work/xulab/fuyuan/anaconda3/envs/py38/bin/python3.8
+#!/usr/bin/env python3
 
 import random
 import json
 import pandas as pd
 from collections import Counter
 import argparse
+from utils import read_json_config
 
 random.seed(42)
 
@@ -15,11 +16,6 @@ def setup_and_parse_args():
     parser.add_argument("-c", "--config", required=True, help="Path to the config json")
     args = parser.parse_args()
     return args
-
-def read_json_config(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    return config
 
 def generate_elements(bins, counts):
     n = 0

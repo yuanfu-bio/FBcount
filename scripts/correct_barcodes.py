@@ -1,4 +1,4 @@
-#!/work/xulab/xulab-seq/sfr/PI-1.0.0/external/anaconda_ATAC/bin/python
+#!/usr/bin/env python3
 
 import os
 import datetime
@@ -9,52 +9,7 @@ import itertools
 import json
 import argparse
 import numpy as np
-
-def open_maybe_gzip(file, mode):
-    return gzip.open(file, mode) if file.endswith('.gz') else open(file, mode)
-
-def load_barcode_whitelist(fn, ordered=False):
-    """ Barcode whitelists are text files of valid barcodes, one per line.
-    Lines containing the '#' character are ignored
-    """
-    with open(fn, 'r') as infile:
-        if ordered:
-            barcodes = [line.strip() for line in infile if '#' not in line]
-        else:
-            barcodes = {line.strip() for line in infile if '#' not in line}
-    return barcodes
-
-def read_generator_fastq(fastq_file, paired_end=False):
-    """ Returns an interator over a fastq file tha produces (name, seq, qual)
-    If paired_end, returns both reads (assuming interleaving fastq)
-    """
-    line_index = 0
-    for line in fastq_file:
-        if line_index == 0:
-            name1 = line.strip()[1:]
-        elif line_index == 1:
-            seq1 = line.strip()
-        elif line_index == 3:
-            qual1 = line.strip()
-        elif line_index == 4:
-            name2 = line.strip()[1:]
-        elif line_index == 5:
-            seq2 = line.strip()
-        elif line_index == 7:
-            qual2 = line.strip()
-
-        line_index += 1
-        if not(paired_end) and line_index == 4:
-            line_index = 0
-
-        if line_index == 8:
-            line_index = 0
-
-        if line_index == 0:
-            if paired_end:
-                yield (name1, seq1, qual1, name2, seq2, qual2)
-            else:
-                yield (name1, seq1, qual1)
+from utils import open_maybe_gzip, load_barcode_whitelist, read_generator_fastq
 
 ## 固定参数
 DNA_ALPHABET = 'AGCT'
@@ -160,7 +115,8 @@ def correct_barcode(bc_confidence_threshold, seq, qual, wl_idxs, wl_dist, maxdis
     wl_cand = []
     likelihoods = []
 
-    qvs = np.fromstring(qual, dtype=np.byte) - ILLUMINA_QUAL_OFFSET
+    # qvs = np.fromstring(qual, dtype=np.byte) - ILLUMINA_QUAL_OFFSET
+    qvs = np.frombuffer(qual.encode(), dtype=np.byte) - ILLUMINA_QUAL_OFFSET
     # Restrict QVs within a narrow range to prevent one base error from overly dominating others
     qvs[qvs < 3.0] = 3.0
     qvs[qvs > 40.0] = 40.0
@@ -296,7 +252,7 @@ def main(whitelist, fq, raw_fq_gz, seq_start, seq_end, barcode_type, logs, sampl
     fq_dict = read_fastq_to_dict(fq)
     bc_counts  = get_bc_counts(fq_dict, wl_idxs)
 
-    bc_dist = np.array(bc_counts, dtype=np.float) + 1.0
+    bc_dist = np.array(bc_counts, dtype=float) + 1.0
     bc_dist = bc_dist / bc_dist.sum()
 
     log_dict, read_name_bc_dict = correct_barcode_file(raw_fq_gz, seq_start, seq_end, 

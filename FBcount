@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Scripts for checking parameters and submitting tasks
+
+
+
 # Function to print help message
 print_help() {
     echo "Usage: $0 [options]"
@@ -56,28 +60,23 @@ if [[ ! -d "$input_dir" ]]; then
     exit 1
 fi
 
-samples="$(ls ${input_dir})"
-
+# Change directory to the project path
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
 cd $SCRIPT_DIR
 
+# Multisample parallel pipeline
+samples="$(ls ${input_dir})"
 for sample in ${samples};do
     echo "Run pipeline for ${sample}..."
-    ./00_scripts/FBcount.sh "$input_dir" "$output_dir" "$sample" "$config" &
+    ./scripts/pipeline.sh "$input_dir" "$output_dir" "$sample" "$config" &
 done
+
+# Wait all samples to complete
 wait
 
-# 汇总数据
+# Aggregate results， including
 echo "start step 4, barcode validation."
-./00_scripts/summary.py \
+./scripts/summary.py \
     -s "${samples}" \
     -o "${output_dir}" \
     -c "${config}"
-
-
-# # Run Saturation Correction
-# echo "start step 5, Saturation Correction."
-# ./00_scripts/correct_saturation.py \
-#     -s "${samples}" \
-#     -o "${output_dir}" \
-#     -c "${config}"

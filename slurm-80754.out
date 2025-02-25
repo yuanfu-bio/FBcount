@@ -1,0 +1,34 @@
+Run pipeline for 293-PI-1_293-OE-1000-PI-1...
+Run pipeline for 293-PI-1_293-OE-250-PI-1...
+Run pipeline for 293-PI-1_293-OE-500-PI-1...
+start step 1.
+start step 1.
+start step 1.
+start step 2. start cut barcodes of 293-PI-1_293-OE-250-PI-1
+start step 2. start cut barcodes of 293-PI-1_293-OE-1000-PI-1
+start step 2. start cut barcodes of 293-PI-1_293-OE-500-PI-1
+correct barcodes of 293-PI-1_293-OE-500-PI-1
+correct barcodes of 293-PI-1_293-OE-1000-PI-1
+correct barcodes of 293-PI-1_293-OE-250-PI-1
+start step 3, generate r1 and r2 need for umi correct.
+start step 3, generate r1 and r2 need for umi correct.
+start step 3, generate r1 and r2 need for umi correct.
+293-PI-1_293-OE-500-PI-1样本已经生成用于umi校正的输入文件, 跳过...
+start step 5, UMI correct.
+293-PI-1_293-OE-1000-PI-1样本已经生成用于umi校正的输入文件, 跳过...
+293-PI-1_293-OE-250-PI-1样本已经生成用于umi校正的输入文件, 跳过...
+start step 5, UMI correct.
+start step 5, UMI correct.
+Start correct umi for 293-PI-1_293-OE-250-PI-1.
+Finish correct umi for 293-PI-1_293-OE-250-PI-1.
+Finish count umi for 293-PI-1_293-OE-250-PI-1.
+start step 5, UMI correct.
+Start correct umi for 293-PI-1_293-OE-500-PI-1.
+Finish correct umi for 293-PI-1_293-OE-500-PI-1.
+Finish count umi for 293-PI-1_293-OE-500-PI-1.
+start step 5, UMI correct.
+Start correct umi for 293-PI-1_293-OE-1000-PI-1.
+Finish correct umi for 293-PI-1_293-OE-1000-PI-1.
+Finish count umi for 293-PI-1_293-OE-1000-PI-1.
+start step 5, UMI correct.
+start step 4, barcode validation.

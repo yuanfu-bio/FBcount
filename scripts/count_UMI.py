@@ -1,4 +1,4 @@
-#!/work/xulab/xulab-seq/miniconda3/bin/python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -6,6 +6,7 @@ import json
 from copy import deepcopy
 import gzip
 import argparse
+from utils import read_json_config, read_fq, fa2dict
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="UMI Counting.")
@@ -15,14 +16,6 @@ def setup_and_parse_args():
     parser.add_argument("-c", "--config", required=True, help="Path to the config json")
     args = parser.parse_args()
     return args
-
-def open_maybe_gzip(file, mode):
-    return gzip.open(file, mode) if file.endswith('.gz') else open(file, mode)
-
-def read_json_config(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    return config
 
 def parse_json_config(config):
     barcode2_ref = config["feature_barcode"]
@@ -45,29 +38,6 @@ def parse_json_config(config):
 
     return barcode2_ref, barcode_start, barcode_end, umi_start, umi_end, per_barcode1_len
 
-def read_fa(fa):
-    sequences = {}
-    with open(fa, 'r') as file:
-        key = None
-        for line in file:
-            line = line.strip()
-            if line.startswith('>'):
-                key = line[1:]
-            else:
-                sequences[line] = key
-    return sequences    
-
-def read_fq(bc_fq):
-    with open_maybe_gzip(bc_fq, "rb") as bc_fq_f:
-        while True:
-            name = bc_fq_f.readline().decode('utf-8').strip().split(" ")[0][1:]
-            if not name:  # Check if the end of file has been reached
-                break
-            seq = bc_fq_f.readline().decode('utf-8').strip()
-            _ = bc_fq_f.readline().strip()  # Read the '+' line
-            _ = bc_fq_f.readline().strip()  # Read the quality line but it's not used here
-            
-            yield name, seq
 
 
 def get_pibc_raw_umis(r1, r2, barcode_start, barcode_end, umi_start, umi_end):
@@ -75,11 +45,11 @@ def get_pibc_raw_umis(r1, r2, barcode_start, barcode_end, umi_start, umi_end):
     dic_A = {}
 
     total_reads = 0
-    for (_, seq), (_, seq2) in zip(read_fq(r1), read_fq(r2)):
+    for (_, seq1, _), (_, seq2, _) in zip(read_fq(r1), read_fq(r2)):
         total_reads += 1
 
-        barcode1 = seq[barcode_start:barcode_end]
-        umi = seq[umi_start:umi_end]
+        barcode1 = seq1[barcode_start:barcode_end]
+        umi = seq1[umi_start:umi_end]
         barcode2 = seq2
 
         barcode = f"{barcode1}_{barcode2}"
@@ -233,7 +203,7 @@ if __name__ == "__main__":
      barcode_start, barcode_end, umi_start, umi_end, 
      per_barcode1_len) = parse_json_config(config)
 
-    barcode2_dict = read_fa(barcode2_ref)
+    barcode2_dict = fa2dict(barcode2_ref)
 
     r1 = os.path.join(input_dir, f"{sample}_r1.fq.gz")
     r2 = os.path.join(input_dir, f"{sample}_r2.fq.gz")
