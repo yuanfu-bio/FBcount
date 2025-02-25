@@ -16,7 +16,7 @@ counts_dir=${output_dir}/${sample}/03_counts
 raw_r1=${input_dir}/${sample}/${sample}_raw_1.fq.gz
 raw_r2=${input_dir}/${sample}/${sample}_raw_2.fq.gz
 
-if [ ! -s ${output_dir} ]; then
+if [ ! -s ${output_dir}/${sample} ]; then
     log_info "Step 1. Creat a working directory for ${sample}"
     mkdir -p ${log_dir}
     mkdir -p ${barcode_dir}
