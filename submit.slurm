@@ -6,7 +6,7 @@
 #SBATCH -N 1
 
 input_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/FBcount_test/01_raw"
-output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/FBcount_test/02_output_240224"
+output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/FBcount_test/02_output_240225"
 config="/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount/config/settings-PI-F15U10.json"
 
 ./FBcount \

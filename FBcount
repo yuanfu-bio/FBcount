@@ -64,19 +64,25 @@ fi
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
 cd $SCRIPT_DIR
 
+source ./scripts/utils.sh
+
 # Multisample parallel pipeline
 samples="$(ls ${input_dir})"
 for sample in ${samples};do
-    echo "Run pipeline for ${sample}..."
-    ./scripts/pipeline.sh "$input_dir" "$output_dir" "$sample" "$config" &
+    log_info "Run pipeline for ${sample}..."
+    (
+        ./scripts/pipeline.sh "$input_dir" "$output_dir" "$sample" "$config"
+        log_info "Pipeline for ${sample} completed!"
+    ) &
 done
-
 # Wait all samples to complete
 wait
 
-# Aggregate results， including
-echo "start step 4, barcode validation."
+# Aggregate results
+log_info "Aggregating results of this batch..."
 ./scripts/summary.py \
     -s "${samples}" \
     -o "${output_dir}" \
     -c "${config}"
+
+log_info "All samples have been processed."
