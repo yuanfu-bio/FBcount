@@ -297,15 +297,10 @@ if __name__=="__main__":
     # 开始运行
     params = [(whitelists[i], fq[i], raw_fq[i], starts[i], ends[i], barcode_types[i],
                logs, sample, bc_confidence_threshold, MAXDIST_CORRECT, shiftCorrection) for i in range(len(whitelists))]
-    print(params)
     
     multiprocessing.set_start_method('fork')
     with multiprocessing.Pool(processes=len(whitelists)) as pool:
         read_name_barcode_dict_lst = pool.map(worker, params)
-    
-    now = datetime.datetime.now()
-    formatted_time = now.strftime("%H:%M:%S")
-    print("Finish barcode correct. Current time:", formatted_time)
 
     with open(os.path.join(logs, f"{sample}_correct_attach.log"), "w") as file:
         file.write('Finished.\n')

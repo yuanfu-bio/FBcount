@@ -104,8 +104,6 @@ def get_pibc_new_umis(dic_A):
     n = 0
     for bc, umi_counts in dic_A.items():
         n += 1
-        if n % 1000000 == 0:
-            print(f"Finished correct barcode group: {n}.")
         umi_count_new = deepcopy(umi_counts)
         umi_correct_mapping = correct_umi(umi_counts)
 
