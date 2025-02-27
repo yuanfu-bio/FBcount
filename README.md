@@ -42,4 +42,4 @@ pip install -r ./requirements.txt
 - [ ]  统一代码风格
 2. 代码环境配置优化
 - [x]  生成requirements.txt
-- [ ]  整理本地环境shebang
+- [x]  整理本地环境shebang
