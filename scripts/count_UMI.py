@@ -6,7 +6,7 @@ import json
 from copy import deepcopy
 import gzip
 import argparse
-from utils import read_json_config, read_fq, fa2dict
+from utils import read_json_config, read_fq, fa2dict, get_bc_umi_counts, write_dict_to_tsv
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="UMI Counting.")
@@ -37,8 +37,6 @@ def parse_json_config(config):
         umi_end += value[2] - value[1]
 
     return barcode2_ref, barcode_start, barcode_end, umi_start, umi_end, per_barcode1_len
-
-
 
 def get_pibc_raw_umis(r1, r2, barcode_start, barcode_end, umi_start, umi_end):
     '''step1'''
@@ -121,47 +119,9 @@ def get_pibc_new_umis(dic_A):
         dic_B[bc] = umi_count_new
     return dic_B, correct_list
 
-
-def get_bc_umi_counts(dic_B):
-    '''step 3'''
-    per_bc_umi_count = {}
-    for bc, umi_counts in dic_B.items():
-        per_bc_umi_count[bc] = len(umi_counts)
-    return per_bc_umi_count
-
-
 def export_nested_dict_to_json(nested_dict, file_name):
     with open(file_name, 'w') as file:
         json.dump(nested_dict, file, indent=4)
-
-
-def write_dict_to_tsv(data_dict, filename, per_barcode1_len, barcode2_dict):
-    # Sort the dictionary by value in ascending order
-    sorted_items = sorted(data_dict.items(), key=lambda item: item[1])
-
-    # Open the file for writing
-    with open(filename, 'w') as file:
-        for key, value in sorted_items:
-            barcode1, barcode2 = key.split("_")
-
-            # 初始化变量，用于存放每段条形码
-            barcode1_parts = []
-            start = 0
-
-            # 根据 per_barcode1_len 中的索引位置切割条形码
-            for end in per_barcode1_len:
-                barcode1_parts.append(barcode1[start:end])
-                start = end  # 更新起始索引为上一个终止位置
-
-            # 将各段条形码使用 "+" 连接
-            barcode1 = "+".join(barcode1_parts)
-
-            # 从 barcode2_dict 获取 barcode2 的值
-            barcode2 = barcode2_dict[barcode2]
-
-            # Write key and value separated by a tab, and end with a newline
-            file.write(f"{barcode1}\t{barcode2}\t{value}\n")
-
 
 def output_results(per_barcode1_len, barcode2_dict, dic_A, dic_B, correct_list, per_bc_umi_count_a_correct, per_bc_umi_count_b_correct, total_reads, dir, prefix):
     '''step 4'''
@@ -194,9 +154,7 @@ if __name__ == "__main__":
     input_dir = args.input_dir
     out_dir = args.output_dir
     sample = args.sample
-    config_file = args.config
-
-    config = read_json_config(config_file)
+    config = read_json_config(args.config)
     (barcode2_ref, 
      barcode_start, barcode_end, umi_start, umi_end, 
      per_barcode1_len) = parse_json_config(config)

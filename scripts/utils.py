@@ -80,3 +80,36 @@ def read_generator_fastq(fastq_file, paired_end=False):
                 yield (name1, seq1, qual1, name2, seq2, qual2)
             else:
                 yield (name1, seq1, qual1)
+
+def get_bc_umi_counts(dic_B):
+    per_bc_umi_count = {}
+    for bc, umi_counts in dic_B.items():
+        per_bc_umi_count[bc] = len(umi_counts)
+    return per_bc_umi_count
+
+def write_dict_to_tsv(data_dict, filename, per_barcode1_len, barcode2_dict):
+    # Sort the dictionary by value in ascending order
+    sorted_items = sorted(data_dict.items(), key=lambda item: item[1], reverse=True)
+
+    # Open the file for writing
+    with open(filename, 'w') as file:
+        for key, value in sorted_items:
+            barcode1, barcode2 = key.split("_")
+
+            # 初始化变量，用于存放每段条形码
+            barcode1_parts = []
+            start = 0
+
+            # 根据 per_barcode1_len 中的索引位置切割条形码
+            for end in per_barcode1_len:
+                barcode1_parts.append(barcode1[start:end])
+                start = end  # 更新起始索引为上一个终止位置
+
+            # 将各段条形码使用 "+" 连接
+            barcode1 = "+".join(barcode1_parts)
+
+            # 从 barcode2_dict 获取 barcode2 的值
+            barcode2 = barcode2_dict[barcode2]
+
+            # Write key and value separated by a tab, and end with a newline
+            file.write(f"{barcode1}\t{barcode2}\t{value}\n")

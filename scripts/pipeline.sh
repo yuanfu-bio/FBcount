@@ -13,6 +13,7 @@ log_dir=${output_dir}/${sample}/00_logs
 barcode_dir=${output_dir}/${sample}/01_barcodes
 fastqs_dir=${output_dir}/${sample}/02_fastqs
 counts_dir=${output_dir}/${sample}/03_counts
+saturation_dir=${output_dir}/${sample}/04_saturation
 raw_r1=${input_dir}/${sample}/${sample}_raw_1.fq.gz
 raw_r2=${input_dir}/${sample}/${sample}_raw_2.fq.gz
 
@@ -22,6 +23,7 @@ if [ ! -s ${output_dir}/${sample} ]; then
     mkdir -p ${barcode_dir}
     mkdir -p ${fastqs_dir}
     mkdir -p ${counts_dir}
+    mkdir -p ${saturation_dir}
 else
     log_info "Step 1. Working directory has been created for ${sample}"
 fi
@@ -113,10 +115,12 @@ else
 fi
 
 # 6. Run Saturation calculation
-if [ ! -s ${counts_dir}/${sample}_Saturation.tsv ]; then
+
+if [ ! -s ${saturation_dir}/${sample}_Downsample.tsv ]; then
     log_info "Step 6. Downsample and calculate the sequence saturation for ${sample}"
     ./scripts/calculate_saturation.py \
         -i ${counts_dir} \
+        -o ${saturation_dir} \
         -s ${sample} \
         -c ${config}
 else

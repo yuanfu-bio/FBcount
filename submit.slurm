@@ -5,9 +5,12 @@
 #SBATCH -n 1
 #SBATCH -N 1
 
-input_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/FBcount_test/01_raw"
-output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/FBcount_test/02_output_240225"
-config="/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount/config/settings-PI-F15U10.json"
+input_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/AAY00021/01_raw"
+output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/AAY00021/02_output"
+config="/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount/config/STD-F15U10.json"
+
+eval "$(conda shell.bash hook)"
+conda activate FBcount
 
 ./FBcount \
 -i "${input_dir}" \
