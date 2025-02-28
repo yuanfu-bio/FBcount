@@ -26,9 +26,10 @@ pip install -r ./requirements.txt
 ### 🐛 Features
 1. 优化饱和度计算
 - [x]  所有barcode统一抽样，不再区分barcode，避免极微量情况下的UMI在不同barcode间的抽样异常
-- [ ]  添加饱和度抽样报告（出图）
+- [x]  添加饱和度抽样报告（出图）
 
 ### 🛠️ Bug Fixes
+- [x]  生成抽样校正后的最终count矩阵
 
 ### 📖 Documentation
 - [x] Write user guide for installation
