@@ -3,3 +3,5 @@ pandas==2.2.3
 xlsxwriter==3.2.2
 jq==1.8.0
 cutadapt==5.0
+plotly==6.0.0
+kaleido==0.2.1

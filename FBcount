@@ -83,4 +83,12 @@ wait
 #     -o "${output_dir}" \
 #     -c "${config}"
 
+# generate saturation reports
+saturation_template="./template/saturation.html"
+log_info "Aggregating saturation results of this batch..."
+./scripts/plot_saturation.py \
+    -s "${samples}" \
+    -o "${output_dir}" \
+    -t "${saturation_template}"
+
 log_info "All samples have been processed."
