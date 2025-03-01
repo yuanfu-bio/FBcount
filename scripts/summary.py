@@ -33,6 +33,7 @@ if __name__ == "__main__":
     barcodes = barcode1 + barcode2
     summary_dir = os.path.join(args.output, "00_summary")
     
+    # read FB info file
     if FB_info_file == "":
         print("feature_barcode_info is not specified, continue.")
     else:
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         log_dir = os.path.join(args.output, sample, "00_logs")
         saturation_dir = os.path.join(args.output, sample, "04_saturation")
 
-        # 汇总barcode有效率
+        # summary for barcode validation
         validation_dict[sample] = {}
         for barcode in barcodes:
             barcode_info = os.path.join(log_dir, f"{sample}_{barcode}.barcode.info")
@@ -55,11 +56,12 @@ if __name__ == "__main__":
                 validation_dict[sample][barcode] = barcode_dict['barcode_valid_percent']
                 total_reads = int(barcode_dict['total_reads'])
 
-        # 汇总counts
+        # summary for FB counts
         final_map = os.path.join(saturation_dir, f"{sample}_per_bc_umi_count_after_downsample.map")
         df_map = pd.read_csv(final_map, sep="\t", header=None)
         df_map.columns = ["Barcode1", "Code", "Counts"]
         df_summary = df_map.groupby("Code")["Counts"].sum().reset_index()
+        ## merge the count matrix and FB information according to the input panel provided
         df_counts = df_summary.merge(FB_info, on="Code", how="right")
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
