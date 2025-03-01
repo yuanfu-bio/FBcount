@@ -165,10 +165,7 @@ if __name__ == "__main__":
     r2 = os.path.join(input_dir, f"{sample}_r2.fq.gz")
     total_reads, dic_A = get_pibc_raw_umis(r1, r2, barcode_start, barcode_end, umi_start, umi_end)
     
-    print(f"Start correct umi for {sample}.")
     dic_B, correct_list = get_pibc_new_umis(dic_A)
-    print(f"Finish correct umi for {sample}.")
     per_bc_umi_count_a_correct = get_bc_umi_counts(dic_B)
     per_bc_umi_count_b_correct = get_bc_umi_counts(dic_A)
     output_results(per_barcode1_len, barcode2_dict, dic_A, dic_B, correct_list, per_bc_umi_count_a_correct, per_bc_umi_count_b_correct, total_reads, out_dir, sample)
-    print(f"Finish count umi for {sample}.")
