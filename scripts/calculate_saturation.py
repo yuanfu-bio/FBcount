@@ -104,7 +104,7 @@ if __name__ == "__main__":
     # Calculate saturation without downsampling
     stats = compute_seq_saturation(dict_b)
     sampling_results.append((1, stats[0], stats[1], stats[2], stats[3]))
-    df = pd.DataFrame(sampling_results, columns=['Downsample Ratio', 'Sequencing Saturation', "UMI Types", "UMI Counts", 'Duplication Ratio'])
+    df = pd.DataFrame(sampling_results, columns=['Downsample Ratio', 'Sequencing Saturation', "UMI detected once", "UMI Types", 'Duplication Ratio'])
     df.to_csv(f"{output_dir}/{sample}_Downsample.tsv", sep="\t")
 
     # Get the optimal ratio of sampling results and generate the final result

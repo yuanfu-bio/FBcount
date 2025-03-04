@@ -41,20 +41,29 @@ if __name__ == "__main__":
         FB_info.columns = ["Code", "FB", "Info"]
         FB_dict = FB_info.set_index('Code')['Info'].to_dict()
 
-    validation_dict = {}
+    meta_dict = {}
     counts_dict = {}
     for sample in args.samples.split():
         log_dir = os.path.join(args.output, sample, "00_logs")
         saturation_dir = os.path.join(args.output, sample, "04_saturation")
 
-        # summary for barcode validation
-        validation_dict[sample] = {}
+        # meta summary for barcode validation
+        meta_dict[sample] = {}
         for barcode in barcodes:
             barcode_info = os.path.join(log_dir, f"{sample}_{barcode}.barcode.info")
             with open(barcode_info, "r") as f:
                 barcode_dict = json.load(f)
-                validation_dict[sample][barcode] = barcode_dict['barcode_valid_percent']
+                meta_dict[sample][barcode] = barcode_dict['barcode_valid_percent']
                 total_reads = int(barcode_dict['total_reads'])
+        meta_dict[sample]["Total reads"] = total_reads
+
+        # meta summary for saturation
+        downsample_file = os.path.join(saturation_dir, f"{sample}_Downsample.tsv")
+        df_downsample = pd.read_csv(downsample_file, sep="\t")
+        final_saturation = df_downsample["Sequencing Saturation"].max()
+        final_duplication = df_downsample.loc[df_downsample["Sequencing Saturation"].idxmax(), "Duplication Ratio"]
+        meta_dict[sample]["Saturation"] = f"{final_saturation}%"
+        meta_dict[sample]["Duplication"] = f"{final_duplication}%"
 
         # summary for FB counts
         final_map = os.path.join(saturation_dir, f"{sample}_per_bc_umi_count_after_downsample.map")
@@ -66,10 +75,10 @@ if __name__ == "__main__":
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
 
-    df_validation = dict2df(validation_dict)
+    df_meta = dict2df(meta_dict)
     df_counts = dict2df(counts_dict)
 
     file_path = os.path.join(summary_dir, f"summary.xlsx")
     with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
-        df_validation.to_excel(writer, sheet_name="Validation")
+        df_meta.to_excel(writer, sheet_name="Meta")
         df_counts.to_excel(writer, sheet_name="Counts")

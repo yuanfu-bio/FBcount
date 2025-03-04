@@ -16,6 +16,7 @@ def setup_and_parse_args():
 
 def plot(df, sample):
     color_palette = ["#5963f5", "#e44c39", "#37c58d", "#9c59f5"]
+    max_saturation = df["Sequencing Saturation"].max()
 
     fig = go.Figure()
 
@@ -37,16 +38,16 @@ def plot(df, sample):
 
     fig.add_trace(go.Scatter(
         x=df["Downsample Ratio"],
-        y=df["UMI Counts"],
-        name="UMI Counts",
+        y=df["UMI Types"],
+        name="UMI Types",
         yaxis="y2",
         line=dict(color=color_palette[2]),
     ))
 
     fig.add_trace(go.Scatter(
             x=df["Downsample Ratio"],
-            y=df["UMI Types"],
-            name="UMI Types",
+            y=df["UMI detected once"],
+            name="UMI detected once",
             yaxis="y",
             line=dict(color=color_palette[3]),
         ))
@@ -59,7 +60,7 @@ def plot(df, sample):
 
     # Update axes
     fig.update_layout(
-        title=dict(text=f"{sample}",
+        title=dict(text=f"{sample}--{max_saturation}%",
                    x=0.5
         ),
         xaxis=dict(
@@ -77,7 +78,7 @@ def plot(df, sample):
             linecolor=color_palette[3],
             linewidth=1.5,
             title=dict(
-                text="UMI Types",
+                text="UMI detected once",
                 font=dict(color=color_palette[3])
             ),
             tickfont=dict(color=color_palette[3]),
@@ -94,7 +95,7 @@ def plot(df, sample):
             linecolor=color_palette[2],
             linewidth=1.5,
             title=dict(
-                text="UMI Counts",
+                text="UMI Types",
                 font=dict(color=color_palette[2])
             ),
             tickfont=dict(color=color_palette[2]),
@@ -153,5 +154,5 @@ if __name__ == "__main__":
         saturation_template = f.read()
 
     final_html = saturation_template.replace("{{ figs_html }}", figs_html)
-    with open(f"{summary_dir}/Saturation.html", "w", encoding="utf-8") as f:
+    with open(f"{summary_dir}/saturation.html", "w", encoding="utf-8") as f:
         f.write(final_html)

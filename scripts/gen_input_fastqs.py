@@ -100,8 +100,6 @@ if __name__=="__main__":
         count, valid = 0, 0
         for (name, seq_r1, qual_r1), (_, seq_r2, qual_r2) in zip(read_fq(raw_r1), read_fq(raw_r2)):
             count += 1
-            if count % 1000000 == 0:
-                print(f"processed {count}.")
             barcode1_lst, barcode1_level_lst = [], []
             for data in all_barcode_dict["barcode1"]:
                 fq_type_info = data[name]
