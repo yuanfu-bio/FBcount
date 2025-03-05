@@ -5,12 +5,23 @@
 #SBATCH -n 1
 #SBATCH -N 1
 
-input_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/AAY00021/01_raw"
-output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/AAY00021/02_output"
-config="/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount/config/STD-F15U10.json"
+# input_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/AAA00052/01_raw"
+# output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/AAA00052/02_output"
+# config="/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount/configs/STD-F10.json"
 
 eval "$(conda shell.bash hook)"
 conda activate FBcount
+
+batch=AAY00029
+raw_dir="/work/xulab/xulab-seq/data/${batch}/00.mergeRawFq"
+input_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/${batch}/01_raw"
+output_dir="/work/xulab/xulab-seq/fy/pi-seq/01_result/${batch}/02_output"
+config="/work/xulab/xulab-seq/fy/pi-seq/00_submit/FBcount/configs/STD-F10.json"
+
+if [[ ! -s ${input_dir} ]];then
+    mkdir -p ${input_dir}
+    ln -s ${raw_dir}/* ${input_dir}
+fi
 
 ./FBcount \
 -i "${input_dir}" \

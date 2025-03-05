@@ -64,8 +64,10 @@ cd $SCRIPT_DIR
 
 source ./scripts/utils.sh
 
-# Multisample parallel pipeline
+# Multisample parallel pipeline 
 samples="$(ls ${input_dir})"
+
+
 for sample in ${samples};do
     log_info "Run pipeline for ${sample}..."
     (
@@ -76,12 +78,14 @@ done
 # Wait all samples to complete
 wait
 
-# # Aggregate results
-# log_info "Aggregating results of this batch..."
-# ./scripts/summary.py \
-#     -s "${samples}" \
-#     -o "${output_dir}" \
-#     -c "${config}"
+# Aggregate results
+
+mkdir -p ${output_dir}/00_summary
+log_info "Aggregating results of this batch..."
+./scripts/summary.py \
+    -s "${samples}" \
+    -o "${output_dir}" \
+    -c "${config}"
 
 # generate saturation reports
 saturation_template="./template/saturation.html"

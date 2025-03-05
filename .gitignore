@@ -1,3 +1,4 @@
 *.json
 *.out
 *.ipynb
+*.slurm
