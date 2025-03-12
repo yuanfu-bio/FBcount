@@ -2,3 +2,5 @@
 *.out
 *.ipynb
 *.slurm
+*.pyc 
+scripts/__pycache__

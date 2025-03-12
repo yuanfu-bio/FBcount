@@ -9,13 +9,18 @@ source ./scripts/utils.sh
 
 # 1. Initialise variables, switch to working directory, and create result directory
 
+# r1_suffix="_raw_1.fq.gz"
+# r2_suffix="_raw_2.fq.gz"
+# r1_suffix="_1.fq.gz"
+# r2_suffix="_2.fq.gz"
+
 log_dir=${output_dir}/${sample}/00_logs
 barcode_dir=${output_dir}/${sample}/01_barcodes
 fastqs_dir=${output_dir}/${sample}/02_fastqs
 counts_dir=${output_dir}/${sample}/03_counts
 saturation_dir=${output_dir}/${sample}/04_saturation
-raw_r1=${input_dir}/${sample}/${sample}_raw_1.fq.gz
-raw_r2=${input_dir}/${sample}/${sample}_raw_2.fq.gz
+raw_r1="${input_dir}/${sample}/${sample}${r1_suffix}"
+raw_r2="${input_dir}/${sample}/${sample}${r2_suffix}"
 
 if [ ! -s ${output_dir}/${sample} ]; then
     log_info "Step 1. Creat a working directory for ${sample}"
