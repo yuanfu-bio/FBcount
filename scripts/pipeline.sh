@@ -9,8 +9,8 @@ source ./scripts/utils.sh
 
 # 1. Initialise variables, switch to working directory, and create result directory
 
-# r1_suffix="_raw_1.fq.gz"
-# r2_suffix="_raw_2.fq.gz"
+r1_suffix="_raw_1.fq.gz"
+r2_suffix="_raw_2.fq.gz"
 # r1_suffix="_1.fq.gz"
 # r2_suffix="_2.fq.gz"
 
@@ -89,7 +89,6 @@ if [ ! -s ${log_dir}/${sample}_correct_attach.log ]; then
 else
     log_info "Step 3. Barcodes Correcting completed for ${sample}"
 fi
-
 
 # 4. Generate input files needed for umi counting.
 

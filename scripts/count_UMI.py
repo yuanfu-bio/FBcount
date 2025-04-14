@@ -100,8 +100,12 @@ def get_pibc_new_umis(dic_A):
     correct_list = {}
 
     n = 0
+    dic_A_len = len(dic_A)
+    progress_checkpoint = dic_A_len // 10
     for bc, umi_counts in dic_A.items():
         n += 1
+        if n % progress_checkpoint == 0:
+            print(f"Finished correcting {n} barcode groups out of {dic_A_len}. Progress: {n / dic_A_len:.0%}")
         umi_count_new = deepcopy(umi_counts)
         umi_correct_mapping = correct_umi(umi_counts)
 
@@ -117,6 +121,7 @@ def get_pibc_new_umis(dic_A):
                 del umi_count_new[key]
         
         dic_B[bc] = umi_count_new
+    print("Correction process completed.")
     return dic_B, correct_list
 
 def export_nested_dict_to_json(nested_dict, file_name):

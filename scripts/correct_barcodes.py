@@ -192,8 +192,8 @@ def correct_barcode_file(raw_fq_gz, seq_start, seq_end, wl_idxs, bc_dist, bc_con
     for read_group in read_generator_fastq(fq):
         level = 0 # 初始化校正等级为0
         log_dict["total_reads"] += 1
-        if log_dict["total_reads"] % 500000 == 0:
-            print(f"finish {log_dict['total_reads']}")
+        # if log_dict["total_reads"] % 500000 == 0:
+        #     print(f"finish {log_dict['total_reads']}")
         name, seq, qual = read_group[0].decode("ASCII"), read_group[1].decode("ASCII"), read_group[2].decode("ASCII")
         name = name.split("/")[0].split(" ")[0]
 
