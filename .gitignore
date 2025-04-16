@@ -3,4 +3,5 @@
 *.ipynb
 *.slurm
 *.pyc 
+*.log
 scripts/__pycache__

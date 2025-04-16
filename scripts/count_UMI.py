@@ -101,7 +101,7 @@ def get_pibc_new_umis(dic_A):
 
     n = 0
     dic_A_len = len(dic_A)
-    progress_checkpoint = dic_A_len // 10
+    progress_checkpoint = max(dic_A_len // 10, 1)
     for bc, umi_counts in dic_A.items():
         n += 1
         if n % progress_checkpoint == 0:
