@@ -3,7 +3,6 @@
 import random
 import json
 import pandas as pd
-from collections import Counter
 import argparse
 from utils import read_json_config, fa2dict, get_bc_umi_counts, write_dict_to_tsv
 

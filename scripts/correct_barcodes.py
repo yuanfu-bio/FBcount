@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import datetime
 import multiprocessing
 import pickle
 import gzip
@@ -9,7 +8,7 @@ import itertools
 import json
 import argparse
 import numpy as np
-from utils import open_maybe_gzip, load_barcode_whitelist, read_generator_fastq
+from utils import open_maybe_gzip, load_barcode_whitelist, read_generator_fastq, save_dict_to_pkl, load_dict_from_pkl
 
 ## 固定参数
 DNA_ALPHABET = 'AGCT'
@@ -18,7 +17,7 @@ ALPHABET_MINUS['N'] = set(DNA_ALPHABET)
 MAXDIST_CORRECT = 1
 ILLUMINA_QUAL_OFFSET = 33
 bc_confidence_threshold = 0.975
-shiftCorrection = 2
+shiftCorrection = 1
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Correct barcodes.")
@@ -69,15 +68,6 @@ def parse_json_config(config, raw_r1, raw_r2):
             raw_fq.append(raw_r2)
 
     return whitelists, barcode_types, starts, ends, raw_fq
-
-def save_dict_to_pkl(dictionary, filepath):
-    with open(filepath, 'wb') as file:
-        pickle.dump(dictionary, file)
-
-def load_dict_from_pkl(filepath):
-    with open(filepath, 'rb') as file:
-        dictionary = pickle.load(file)
-    return dictionary
 
 def read_fastq_to_dict(filepath):
     fastq_dict = {}

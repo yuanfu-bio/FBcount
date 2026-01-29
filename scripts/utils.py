@@ -2,9 +2,15 @@ import json
 import re
 import gzip
 from itertools import zip_longest
+from datetime import datetime
+
+def timestamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def log_info(message):
+    print(f"{timestamp()} [INFO] {message}")
 
 # 部分代码参考10x gonomics
-
 def read_json_config(file_path):
     # with open(file_path, 'r', encoding='utf-8') as f:
     with open(file_path, 'r') as f:
@@ -113,3 +119,20 @@ def write_dict_to_tsv(data_dict, filename, per_barcode1_len, barcode2_dict):
 
             # Write key and value separated by a tab, and end with a newline
             file.write(f"{barcode1}\t{barcode2}\t{value}\n")
+
+def save_dict_to_pkl(dictionary, filepath):
+    with open(filepath, 'w') as f:
+        for read_name, (barcode, quality) in dictionary.items():
+            barcode = barcode if barcode else ""
+            f.write(f"{read_name}\t{barcode}\t{quality}\n")
+
+def load_dict_from_pkl(filepath):
+    dictionary = {}
+    with open(filepath, 'r') as f:
+        for line in f:
+            parts = line.rstrip('\n').split('\t')
+            if len(parts) != 3:
+                raise ValueError(f"Line format error: {line}")
+            read_name, barcode, quality = parts
+            dictionary[read_name] = [barcode, quality]
+    return dictionary

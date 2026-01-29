@@ -2,10 +2,9 @@
 
 import os
 import gzip
-import json
 import argparse
 import pickle
-from utils import read_fq, read_json_config
+from utils import read_fq, read_json_config, save_dict_to_pkl, load_dict_from_pkl
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Generate input fastqs.")
@@ -86,13 +85,15 @@ if __name__=="__main__":
     all_barcode_dict = {"barcode1": [], "barcode2": []}
     for fq_type in barcode1_fq_types:
         pkl_f = f"{os.path.join(logs, sample)}_{fq_type}.barcode.pkl"
-        with open(pkl_f, 'rb') as file:
-            data = pickle.load(file)
+        # with open(pkl_f, 'rb') as file:
+        #     data = pickle.load(file)
+        data = load_dict_from_pkl(pkl_f)
         all_barcode_dict["barcode1"].append(data)
     for fq_type in barcode2_fq_types:
         pkl_f = f"{os.path.join(logs, sample)}_{fq_type}.barcode.pkl"
-        with open(pkl_f, 'rb') as file:
-            data = pickle.load(file)
+        # with open(pkl_f, 'rb') as file:
+        #     data = pickle.load(file)
+        data = load_dict_from_pkl(pkl_f)
         all_barcode_dict["barcode2"].append(data)
 
     out_r1, out_r2 = os.path.join(out, f"{sample}_r1.fq.gz"), os.path.join(out, f"{sample}_r2.fq.gz")

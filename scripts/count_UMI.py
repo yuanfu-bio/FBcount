@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-import sys
 import os
 import json
 from copy import deepcopy
-import gzip
 import argparse
-from utils import read_json_config, read_fq, fa2dict, get_bc_umi_counts, write_dict_to_tsv
+from utils import read_json_config, read_fq, fa2dict, get_bc_umi_counts, write_dict_to_tsv, log_info
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="UMI Counting.")
@@ -105,7 +103,7 @@ def get_pibc_new_umis(dic_A):
     for bc, umi_counts in dic_A.items():
         n += 1
         if n % progress_checkpoint == 0:
-            print(f"Finished correcting {n} barcode groups out of {dic_A_len}. Progress: {n / dic_A_len:.0%}")
+            log_info(f'Step 5. Finished correcting {n} barcode groups out of {dic_A_len}. Progress: {n / dic_A_len:.0%}')
         umi_count_new = deepcopy(umi_counts)
         umi_correct_mapping = correct_umi(umi_counts)
 
@@ -121,8 +119,8 @@ def get_pibc_new_umis(dic_A):
                 del umi_count_new[key]
         
         dic_B[bc] = umi_count_new
-    print("Correction process completed.")
     return dic_B, correct_list
+
 
 def export_nested_dict_to_json(nested_dict, file_name):
     with open(file_name, 'w') as file:
