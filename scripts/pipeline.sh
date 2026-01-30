@@ -74,11 +74,11 @@ for bc in $bcs; do
 done
 wait
 
-
 # 3. Get barcodes with positions, and correct them.
 
 if [ ! -s ${log_dir}/${sample}_correct_attach.log ]; then
     log_info "Step 3. Get barcodes with positions, and correct for ${sample}"
+     # 批量barcode校正, wait到logs/${sample}_align_rate.log产生, 执行attach barcode
     ./scripts/correct_barcodes.py \
         -f ${barcode_dir} \
         -s ${sample} \
@@ -129,4 +129,16 @@ if [ ! -s ${saturation_dir}/${sample}_Downsample.tsv ]; then
         -c ${config}
 else
     log_info "Step 6. Saturation has been calculated for ${sample}"
+fi
+
+# 7. Estimate the Library Size
+
+if [ ! -s ${saturation_dir}/${sample}_Estimation.tsv ]; then
+    log_info "Step 7. Estimate the Library Size for ${sample}"
+    ./scripts/estimate.py \
+        -i ${saturation_dir} \
+        -o ${saturation_dir} \
+        -s ${sample}
+else
+    log_info "Step 7. Library size has been estimated for ${sample}"
 fi

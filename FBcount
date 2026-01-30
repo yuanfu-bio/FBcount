@@ -10,6 +10,7 @@ print_help() {
     echo "  -i, --input_dir <path>       Specify the input file path"
     echo "  -o, --output_dir <path>      Specify the output file path"
     echo "  -c, --config <file>      Specify the configuration file"
+    echo "  -mp, --multi-PI              Enable multi-PI task"
     echo "  -h, --help               Display this help message"
 }
 
@@ -17,6 +18,7 @@ print_help() {
 input_dir=""
 output_dir=""
 config=""
+multi_pi=false
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -36,6 +38,10 @@ while [[ $# -gt 0 ]]; do
         -c|--config)
             config="$2"
             shift 2
+            ;;
+        -mp|--multi-PI)
+            multi_pi=true
+            shift
             ;;
         *)
             echo "Invalid argument: $1"
@@ -60,13 +66,12 @@ fi
 
 # Change directory to the project path
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
-cd $SCRIPT_DIR
+cd "$SCRIPT_DIR"
 
 source ./scripts/utils.sh
 
 # Multisample parallel pipeline 
 samples="$(ls ${input_dir})"
-
 
 for sample in ${samples};do
     log_info "Run pipeline for ${sample}..."
@@ -79,15 +84,22 @@ done
 wait
 
 # Aggregate results
-
 mkdir -p ${output_dir}/00_summary
 log_info "Aggregating results of this batch..."
-./scripts/summary.py \
-    -s "${samples}" \
-    -o "${output_dir}" \
-    -c "${config}"
 
-# generate saturation reports
+# Execute summary.py with collected parameters
+cmd="./scripts/summary.py \
+    -s \"${samples}\" \
+    -o \"${output_dir}\" \
+    -c \"${config}\""
+# Append multi-PI flag if enabled
+if [ "$multi_pi" = true ]; then
+    cmd="$cmd -mp"
+fi
+# Run the command
+eval $cmd
+
+# Generate saturation reports
 saturation_template="./template/saturation.html"
 log_info "Aggregating saturation results of this batch..."
 ./scripts/plot_saturation.py \

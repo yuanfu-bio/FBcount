@@ -4,6 +4,8 @@ import json
 import os
 import pandas as pd
 import argparse
+import sys
+from collections import defaultdict
 from utils import read_json_config
 
 def setup_and_parse_args():
@@ -11,6 +13,7 @@ def setup_and_parse_args():
     parser.add_argument("-s", "--samples", required=True, help="sample name")
     parser.add_argument("-o", "--output", required=True, help="Path to the output path")
     parser.add_argument("-c", "--config", required=True, help="Path to the config json")
+    parser.add_argument("-mp", action="store_true", help="Enable multi-PI task")
     args = parser.parse_args()
     return args
 
@@ -32,10 +35,13 @@ if __name__ == "__main__":
     barcode1, barcode2, FB_info_file = parse_json_config(config)
     barcodes = barcode1 + barcode2
     summary_dir = os.path.join(args.output, "00_summary")
+
+    
     
     # read FB info file
     if FB_info_file == "":
         print("feature_barcode_info is not specified, continue.")
+        sys.exit(1)
     else:
         FB_info = pd.read_csv(FB_info_file, sep = "\t", header = None)
         FB_info.columns = ["Code", "FB", "Info"]
@@ -62,8 +68,36 @@ if __name__ == "__main__":
         df_downsample = pd.read_csv(downsample_file, sep="\t")
         final_saturation = df_downsample["Sequencing Saturation"].max()
         final_duplication = df_downsample.loc[df_downsample["Sequencing Saturation"].idxmax(), "Duplication Ratio"]
+        final_UMI_types = df_downsample.loc[df_downsample["Sequencing Saturation"].idxmax(), "UMI Types"]
         meta_dict[sample]["Saturation"] = f"{final_saturation}%"
         meta_dict[sample]["Duplication"] = f"{final_duplication}%"
+        meta_dict[sample]["Observed"] = int(final_UMI_types)
+
+        # estimation for FB counts
+        estimation_file = os.path.join(saturation_dir, f"{sample}_Estimation.tsv")
+        df_estimation = pd.read_csv(estimation_file, sep="\t")
+        Vmax = df_estimation["Vmax"]
+        # meta_dict[sample]["Estimated"] = int(Vmax)
+        meta_dict[sample]["Estimated"] = int(Vmax.iloc[0])
+
+        # multi-PI summary  
+        if args.mp:
+            final_json = os.path.join(saturation_dir, f"{sample}_dic_after_downsample.json")
+            with open(final_json, "r") as f:
+                data = json.load(f)
+            fb_umi_to_pbs = defaultdict(set)
+            # 遍历数据
+            for pb_fb, umi_dict in data.items():
+                pb, fb = pb_fb.split("_")
+                for umi in umi_dict.keys():
+                    fb_umi = f"{fb}_{umi}"  # FB+UMI 定义唯一分子
+                    fb_umi_to_pbs[fb_umi].add(pb)
+            total = len(fb_umi_to_pbs)
+            conflict = sum(1 for pbs in fb_umi_to_pbs.values() if len(pbs) > 1)
+            ratio = conflict / total if total > 0 else 0
+            meta_dict[sample]["FB_UMI_Total"] = total
+            meta_dict[sample]["FB_UMI_MP"] = conflict
+            meta_dict[sample]["MP Ratio"] = f"{ratio*100:.2f}%"
 
         # summary for FB counts
         final_map = os.path.join(saturation_dir, f"{sample}_per_bc_umi_count_after_downsample.map")
@@ -74,6 +108,8 @@ if __name__ == "__main__":
         df_counts = df_summary.merge(FB_info, on="Code", how="right")
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
+
+        
 
     df_meta = dict2df(meta_dict)
     df_counts = dict2df(counts_dict)
