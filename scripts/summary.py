@@ -1,4 +1,4 @@
-#! /work/xulab/fuyuan/anaconda3/envs/FBcount/bin/python3.11
+#! /usr/bin/env python
 
 import json
 import os

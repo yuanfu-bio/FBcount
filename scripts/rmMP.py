@@ -1,4 +1,4 @@
-#! /work/xulab/fuyuan/anaconda3/envs/FBcount/bin/python3.11
+#! /usr/bin/env python
 
 import pandas as pd
 from collections import defaultdict
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     
     df_cleaned, df_cleaned_WL, FB_not_in_WL, stats_df = rmMP(json_file, FB_info, FB_info_all, sample)
 
-    stats_df.to_csv(f"{output_dir}/MultiPI_Statistics_Report.tsv", index=False, sep="\t")
+    stats_df.to_csv(f"{output_dir}/MP_Report.tsv", index=False, sep="\t")
     FB_not_in_WL.to_csv(f"{output_dir}/FB_not_in_WL.tsv", index=False, sep="\t")
 
     df_cleaned.to_csv(f"{output_dir}/df_rmMP_all.tsv.gz", sep="\t", index=False, compression="gzip")
