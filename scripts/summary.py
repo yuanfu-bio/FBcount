@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /work/xulab/fuyuan/anaconda3/envs/FBcount/bin/python3.11
 
 import json
 import os
@@ -36,8 +36,6 @@ if __name__ == "__main__":
     barcodes = barcode1 + barcode2
     summary_dir = os.path.join(args.output, "00_summary")
 
-    
-    
     # read FB info file
     if FB_info_file == "":
         print("feature_barcode_info is not specified, continue.")
@@ -49,9 +47,11 @@ if __name__ == "__main__":
 
     meta_dict = {}
     counts_dict = {}
+    df_mp_reports = []
     for sample in args.samples.split():
         log_dir = os.path.join(args.output, sample, "00_logs")
         saturation_dir = os.path.join(args.output, sample, "04_saturation")
+        rmMP_dir = os.path.join(args.output, sample, "05_rmMP")
 
         # meta summary for barcode validation
         meta_dict[sample] = {}
@@ -80,24 +80,10 @@ if __name__ == "__main__":
         # meta_dict[sample]["Estimated"] = int(Vmax)
         meta_dict[sample]["Estimated"] = int(Vmax.iloc[0])
 
-        # multi-PI summary  
         if args.mp:
-            final_json = os.path.join(saturation_dir, f"{sample}_dic_after_downsample.json")
-            with open(final_json, "r") as f:
-                data = json.load(f)
-            fb_umi_to_pbs = defaultdict(set)
-            # 遍历数据
-            for pb_fb, umi_dict in data.items():
-                pb, fb = pb_fb.split("_")
-                for umi in umi_dict.keys():
-                    fb_umi = f"{fb}_{umi}"  # FB+UMI 定义唯一分子
-                    fb_umi_to_pbs[fb_umi].add(pb)
-            total = len(fb_umi_to_pbs)
-            conflict = sum(1 for pbs in fb_umi_to_pbs.values() if len(pbs) > 1)
-            ratio = conflict / total if total > 0 else 0
-            meta_dict[sample]["FB_UMI_Total"] = total
-            meta_dict[sample]["FB_UMI_MP"] = conflict
-            meta_dict[sample]["MP Ratio"] = f"{ratio*100:.2f}%"
+            MP_report = os.path.join(rmMP_dir, "MP_Report.tsv")
+            df_mp_report = pd.read_csv(MP_report, sep="\t", header=0, index_col=0)
+            df_mp_reports.append(df_mp_report)
 
         # summary for FB counts
         final_map = os.path.join(saturation_dir, f"{sample}_per_bc_umi_count_after_downsample.map")
@@ -109,9 +95,11 @@ if __name__ == "__main__":
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
 
-        
-
     df_meta = dict2df(meta_dict)
+    if args.mp:
+        df_mp_summary = pd.concat(df_mp_reports, keys=args.samples.split(), names=['sample'])
+        df_meta = df_meta.merge(df_mp_summary, on="sample", how="left")
+
     df_counts = dict2df(counts_dict)
 
     file_path = os.path.join(summary_dir, f"summary.xlsx")

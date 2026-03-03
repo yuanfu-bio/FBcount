@@ -3,6 +3,7 @@ import re
 import gzip
 from itertools import zip_longest
 from datetime import datetime
+import pandas as pd
 
 def timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -43,6 +44,34 @@ def fa2dict(file_path):
             else:
                 info[line] = key
     return info    
+
+def fa2df(file_path, col_names):
+    records = []
+    with open(file_path, "r") as f:
+        header = ""
+        seq = ""
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(">"):
+                if header:
+                    records.append({col_names[0]: header, col_names[1]: seq})
+                
+                header = line[1:].strip()
+                seq = ""
+            else:
+                seq += line
+                
+        if header:
+            records.append({col_names[0]: header, col_names[1]: seq})
+            
+    # 将字典列表转换为 DataFrame
+    return pd.DataFrame(records)
+
+
+
+
 
 def load_barcode_whitelist(fn, ordered=False):
     """ Barcode whitelists are text files of valid barcodes, one per line.

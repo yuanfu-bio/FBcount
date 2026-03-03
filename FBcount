@@ -76,7 +76,7 @@ samples="$(ls ${input_dir})"
 for sample in ${samples};do
     log_info "Run pipeline for ${sample}..."
     (
-        ./scripts/pipeline.sh "$input_dir" "$output_dir" "$sample" "$config"
+        ./scripts/pipeline.sh "$input_dir" "$output_dir" "$sample" "$config" "$multi_pi"
         log_info "Pipeline for ${sample} completed!"
     ) &
 done

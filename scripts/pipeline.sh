@@ -4,6 +4,7 @@ input_dir=$1
 output_dir=$2
 sample=$3
 config=$4
+multi_pi=$5
 
 source ./scripts/utils.sh
 
@@ -19,6 +20,7 @@ barcode_dir=${output_dir}/${sample}/01_barcodes
 fastqs_dir=${output_dir}/${sample}/02_fastqs
 counts_dir=${output_dir}/${sample}/03_counts
 saturation_dir=${output_dir}/${sample}/04_saturation
+rmMP_dir=${output_dir}/${sample}/05_rmMP
 raw_r1="${input_dir}/${sample}/${sample}${r1_suffix}"
 raw_r2="${input_dir}/${sample}/${sample}${r2_suffix}"
 
@@ -29,6 +31,7 @@ if [ ! -s ${output_dir}/${sample} ]; then
     mkdir -p ${fastqs_dir}
     mkdir -p ${counts_dir}
     mkdir -p ${saturation_dir}
+    mkdir -p ${rmMP_dir}
 else
     log_info "Step 1. Working directory has been created for ${sample}"
 fi
@@ -141,4 +144,18 @@ if [ ! -s ${saturation_dir}/${sample}_Estimation.tsv ]; then
         -s ${sample}
 else
     log_info "Step 7. Library size has been estimated for ${sample}"
+fi
+
+# 8. remove multi-PI molecules if enabled
+if [ "$multi_pi" = true ]; then
+    if [ ! -s ${rmMP_dir}/MP_Report.tsv ]; then
+        log_info "Step 8. Remove multi-PI molecules for ${sample}"
+        ./scripts/rmMP.py \
+            -i ${saturation_dir} \
+            -o ${rmMP_dir} \
+            -s ${sample} \
+            -c ${config}
+    else
+        log_info "Step 8. Multi-PI molecules have been removed for ${sample}"
+    fi
 fi
