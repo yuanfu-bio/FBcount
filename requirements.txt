@@ -5,3 +5,9 @@ cutadapt==5.0
 plotly==6.0.0
 kaleido==0.2.1
 jq==1.8.0
+joblib==1.5.3
+numba==0.64.0
+tqdm_joblib==0.0.5
+sklearn==1.7.1
+seaborn==0.13.2
+openpyxl==3.1.5
