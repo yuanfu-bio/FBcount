@@ -93,7 +93,9 @@ if __name__ == "__main__":
 
     args = setup_and_parse_args()
     summary_dir = os.path.join(args.output, "00_summary")
-    summary_permutation_dir = os.path.join(summary_dir, "permutation")
+    summary_permutation_dir = os.path.join(summary_dir, "Permutation")
+    heatmap_dir = os.path.join(summary_permutation_dir, "Heatmaps")
+    os.makedirs(heatmap_dir, exist_ok=True)
 
     z_file = pd.ExcelFile(f"{summary_permutation_dir}/Permutation_z_scores.xlsx")
     p_file = pd.ExcelFile(f"{summary_permutation_dir}/Permutation_p_scores.xlsx")
@@ -115,7 +117,7 @@ if __name__ == "__main__":
             p_cutoff=0.05, 
             mask_nosig=True, 
             cmap=custom_cmap,
-            output_file=f"{summary_permutation_dir}/Heatmap_{sample}.pdf"
+            output_file=f"{heatmap_dir}/Heatmap_{sample}.pdf"
         )
 
         plot_heatmap(
@@ -128,5 +130,5 @@ if __name__ == "__main__":
             p_cutoff=1, 
             mask_nosig=True, 
             cmap=custom_cmap,
-            output_file=f"{summary_permutation_dir}/Heatmap_all_{sample}.pdf"
+            output_file=f"{heatmap_dir}/Heatmap_all_{sample}.pdf"
         )
