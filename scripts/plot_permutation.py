@@ -12,8 +12,6 @@ import matplotlib.font_manager as fm
 import matplotlib as mpl
 from utils import custom_fonts
 
-
-
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Barcode Validation.")
     parser.add_argument("-o", "--output", required=True, help="Path to the output path")
