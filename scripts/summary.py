@@ -47,7 +47,9 @@ if __name__ == "__main__":
 
     meta_dict = {}
     counts_dict = {}
+    df_counts_rmMP = pd.DataFrame()
     df_mp_reports = []
+
     for sample in args.samples.split():
         log_dir = os.path.join(args.output, sample, "00_logs")
         saturation_dir = os.path.join(args.output, sample, "04_saturation")
@@ -94,6 +96,15 @@ if __name__ == "__main__":
         df_counts = df_summary.merge(FB_info, on="Code", how="right")
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
+       
+        df_rmMP_WL_file = f"{rmMP_dir}/df_rmMP_WL.tsv.gz"
+        df = pd.read_csv(df_rmMP_WL_file, sep="\t", compression="gzip")
+        df_counts_rmMP[sample] = df["Info"].value_counts().fillna(0).astype(int)
+
+    df_counts_rmMP = df_counts_rmMP.reindex(FB_info["Info"])
+    df_counts_rmMP = df_counts_rmMP.T
+    df_counts_rmMP.index.name = "sample"
+    df_counts_rmMP = df_counts_rmMP.sort_index()
 
     df_meta = dict2df(meta_dict)
     if args.mp:
@@ -106,3 +117,4 @@ if __name__ == "__main__":
     with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
         df_meta.to_excel(writer, sheet_name="Meta")
         df_counts.to_excel(writer, sheet_name="Counts")
+        df_counts_rmMP.to_excel(writer, sheet_name="Counts_rmMP")
