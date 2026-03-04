@@ -175,3 +175,54 @@ def custom_fonts(default_font = "Arial",
     mpl.rcParams['font.family'] = default_font
     mpl.rcParams['pdf.fonttype'] = 42
     mpl.rcParams['ps.fonttype'] = 42
+
+def draw_stacked_bar_plot(df_pct_umi, df_pct_fb, samples):
+    import matplotlib.pyplot as plt
+    import numpy as np
+        
+    custom_fonts(default_font = "Arial")
+
+    color_custom = [
+        "#1f77b4", "#A3D3F5", "#aec7e8", "#A2E4F8",
+        "#00c19f", "#8FCC91", "#4ECDC4", "#C1E8C4",
+    ]
+
+    fig_width = max(4, len(samples) * 0.5)
+    # fig_width = len(samples) * 0.5
+    _, ax = plt.subplots(figsize=(fig_width, 6))
+
+    samples = df_pct_umi.columns
+    x = np.arange(len(samples))
+    width = 0.35
+
+    # UMI stacked bar
+    bottom = np.zeros(len(samples))
+    for col, color in zip(df_pct_umi.index, color_custom):
+        ax.bar(
+            x - width/2, 
+            df_pct_umi.loc[col],
+            width*0.9, 
+            bottom=bottom, 
+            label=col if col not in ax.get_legend_handles_labels()[1] else "", 
+            color=color
+        )
+        bottom += df_pct_umi.loc[col].values
+
+    # FB stacked bar
+    bottom = np.zeros(len(samples))
+    for col, color in zip(df_pct_fb.index, color_custom):
+        ax.bar(
+            x + width/2, 
+            df_pct_fb.loc[col], 
+            width*0.9, 
+            bottom=bottom, 
+            label=col if col not in ax.get_legend_handles_labels()[1] else "", 
+            color=color,
+        )
+        bottom += df_pct_fb.loc[col].values
+
+    ax.set_ylabel("Percentage (%)")
+    ax.set_title("nUMIs per PB vs FB per PB")
+    ax.set_xticks(x)
+    ax.set_xticklabels(samples, rotation=45, ha="right")
+    ax.legend(title=None, bbox_to_anchor=(1.02, 1), loc="upper left")

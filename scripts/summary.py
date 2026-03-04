@@ -5,8 +5,9 @@ import os
 import pandas as pd
 import argparse
 import sys
-from collections import defaultdict
-from utils import read_json_config
+from utils import read_json_config, draw_stacked_bar_plot
+import matplotlib.pyplot as plt
+import numpy as np
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Barcode Validation.")
@@ -29,6 +30,14 @@ def dict2df(dict):
     df.index.name = 'sample'
     return df
 
+def calc_pct(df, drop1=False, as_str=False):
+    if as_str:
+        df.index = df.index.map(lambda x: str(x) if x < 8 else '8+')
+    if drop1:
+        df = df.loc[df.index != ('1' if as_str else 1)]
+    df = df.groupby(df.index).sum()
+    return df.div(df.sum(axis=0), axis=1) * 100
+
 if __name__ == "__main__":
     args = setup_and_parse_args()
     config = read_json_config(args.config)
@@ -48,6 +57,8 @@ if __name__ == "__main__":
     meta_dict = {}
     counts_dict = {}
     df_counts_rmMP = pd.DataFrame()
+    pb_umis = {}
+    pb_fbs = {}
     df_mp_reports = []
 
     for sample in args.samples.split():
@@ -79,7 +90,6 @@ if __name__ == "__main__":
         estimation_file = os.path.join(saturation_dir, f"{sample}_Estimation.tsv")
         df_estimation = pd.read_csv(estimation_file, sep="\t")
         Vmax = df_estimation["Vmax"]
-        # meta_dict[sample]["Estimated"] = int(Vmax)
         meta_dict[sample]["Estimated"] = int(Vmax.iloc[0])
 
         if args.mp:
@@ -96,25 +106,46 @@ if __name__ == "__main__":
         df_counts = df_summary.merge(FB_info, on="Code", how="right")
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
-       
+
+        # summary for FB counts afetr rmMP
         df_rmMP_WL_file = f"{rmMP_dir}/df_rmMP_WL.tsv.gz"
         df = pd.read_csv(df_rmMP_WL_file, sep="\t", compression="gzip")
         df_counts_rmMP[sample] = df["Info"].value_counts().fillna(0).astype(int)
 
-    df_counts_rmMP = df_counts_rmMP.reindex(FB_info["Info"])
-    df_counts_rmMP = df_counts_rmMP.T
-    df_counts_rmMP.index.name = "sample"
-    df_counts_rmMP = df_counts_rmMP.sort_index()
-
+        # calculate PB-UMI and PB-FB counts
+        pb_umis[sample] = df.groupby('PB')['UMI'].nunique().value_counts()
+        pb_fbs[sample] = df.groupby('PB')['FB_num'].nunique().value_counts()
+        
     df_meta = dict2df(meta_dict)
+    df_counts = dict2df(counts_dict)
+
     if args.mp:
         df_mp_summary = pd.concat(df_mp_reports, keys=args.samples.split(), names=['sample'])
         df_meta = df_meta.merge(df_mp_summary, on="sample", how="left")
 
-    df_counts = dict2df(counts_dict)
+        df_counts_rmMP = df_counts_rmMP.reindex(FB_info["Info"])
+        df_counts_rmMP = df_counts_rmMP.T
+        df_counts_rmMP.index.name = "sample"
+        df_counts_rmMP = df_counts_rmMP.sort_index()
+
+        df_pb_umis = pd.DataFrame(pb_umis).fillna(0)
+        df_pb_umis = df_pb_umis[sorted(df_pb_umis.columns)]
+        df_pct_umi = calc_pct(df_pb_umis.copy(), drop1=False, as_str=True)
+
+        df_pb_fbs = pd.DataFrame(pb_fbs).fillna(0)
+        df_pb_fbs = df_pb_fbs[sorted(df_pb_fbs.columns)]
+        df_pct_fb = calc_pct(df_pb_fbs.copy(), drop1=False, as_str=True)
+        
+        draw_stacked_bar_plot(df_pct_umi, df_pct_fb, args.samples.split())
+        plt.savefig(os.path.join(summary_dir, "UMI_FB_per_PB.pdf"), bbox_inches="tight")
 
     file_path = os.path.join(summary_dir, f"summary.xlsx")
     with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
         df_meta.to_excel(writer, sheet_name="Meta")
         df_counts.to_excel(writer, sheet_name="Counts")
-        df_counts_rmMP.to_excel(writer, sheet_name="Counts_rmMP")
+        if args.mp:
+            df_counts_rmMP.to_excel(writer, sheet_name="Counts_rmMP")
+            df_pb_umis.to_excel(writer, sheet_name='UMI_per_PB_Count', index=True)
+            df_pct_umi.to_excel(writer, sheet_name='UMI_per_PB_Pct', index=True)
+            df_pb_fbs.to_excel(writer, sheet_name='FB_per_PB_Count', index=True)
+            df_pct_fb.to_excel(writer, sheet_name='FB_per_PB_Pct', index=True)
