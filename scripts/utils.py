@@ -187,8 +187,7 @@ def draw_stacked_bar_plot(df_pct_umi, df_pct_fb, samples):
         "#00c19f", "#8FCC91", "#4ECDC4", "#C1E8C4",
     ]
 
-    fig_width = max(4, len(samples) * 0.5)
-    # fig_width = len(samples) * 0.5
+    fig_width = max(4, len(samples) * 1)
     _, ax = plt.subplots(figsize=(fig_width, 6))
 
     samples = df_pct_umi.columns
