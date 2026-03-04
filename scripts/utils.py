@@ -4,6 +4,8 @@ import gzip
 from itertools import zip_longest
 from datetime import datetime
 import pandas as pd
+import matplotlib.font_manager as fm
+import matplotlib as mpl
 
 def timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -68,9 +70,6 @@ def fa2df(file_path, col_names):
             
     # 将字典列表转换为 DataFrame
     return pd.DataFrame(records)
-
-
-
 
 
 def load_barcode_whitelist(fn, ordered=False):
@@ -165,3 +164,14 @@ def load_dict_from_pkl(filepath):
             read_name, barcode, quality = parts
             dictionary[read_name] = [barcode, quality]
     return dictionary
+
+def custom_fonts(default_font = "Arial", 
+                 font_dir = "/work/xulab/xulab-seq/fonts"):
+    font_files = fm.findSystemFonts(fontpaths=[font_dir])
+    for font_path in font_files:
+        fm.fontManager.addfont(font_path)
+    mpl.font_manager._load_fontmanager(try_read_cache=False)
+
+    mpl.rcParams['font.family'] = default_font
+    mpl.rcParams['pdf.fonttype'] = 42
+    mpl.rcParams['ps.fonttype'] = 42

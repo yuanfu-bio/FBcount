@@ -8,21 +8,11 @@ from tqdm import tqdm
 import matplotlib.colors as mcolors
 import argparse
 import os
-
 import matplotlib.font_manager as fm
 import matplotlib as mpl
+from utils import custom_fonts
 
-def custom_fonts(default_font = "Arial", 
-                 font_dir = "/work/xulab/xulab-seq/fy/01_source/fonts"):
-    font_files = fm.findSystemFonts(fontpaths=[font_dir])
-    for font_path in font_files:
-        fm.fontManager.addfont(font_path)
-    mpl.font_manager._load_fontmanager(try_read_cache=False)
 
-    # 设置全局默认字体
-    mpl.rcParams['font.family'] = default_font
-    mpl.rcParams['pdf.fonttype'] = 42
-    mpl.rcParams['ps.fonttype'] = 42
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Barcode Validation.")
@@ -96,15 +86,12 @@ def plot_heatmap(z_scores, p_values, protein_names, sample_name,
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     plt.close()
 
-
-
 if __name__ == "__main__":
 
     colors = ["#1f77b4", "#E6F9FF", "#F48FB1"]
     custom_cmap = mcolors.LinearSegmentedColormap.from_list("bluepink", colors)
 
-    custom_fonts(default_font = "Arial", 
-                 font_dir = "/work/xulab/xulab-seq/fy/01_source/fonts")
+    custom_fonts(default_font = "Arial")
 
     args = setup_and_parse_args()
     summary_dir = os.path.join(args.output, "00_summary")
