@@ -9,8 +9,6 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.cluster.hierarchy import dendrogram 
 import os
 import argparse
-# from tqdm_joblib import tqdm_joblib
-# from tqdm import tqdm
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Barcode Validation.")
@@ -123,13 +121,6 @@ class LargeScaleProteinAnalysis:
             shuffled_matrix = self.curveball_shuffle(self.matrix)
             return self.calculate_cooccurrence_fast(shuffled_matrix)
 
-        # # 使用 tqdm_joblib 包装
-        # with tqdm_joblib(tqdm(total=n_permutations)) as progress_bar:
-        #     results = Parallel(n_jobs=n_jobs)(
-        #         delayed(single_permutation)(i)
-        #         for i in range(n_permutations)
-        #     )
-
         results = Parallel(n_jobs=n_jobs)(
                 delayed(single_permutation)(i)
                 for i in range(n_permutations))
@@ -220,7 +211,7 @@ def cluster_proteins(Z):
 if __name__ == "__main__":
     args = setup_and_parse_args()
     summary_dir = os.path.join(args.output, "00_summary")
-    summary_permutation_dir = os.path.join(summary_dir, "permutation")
+    summary_permutation_dir = os.path.join(summary_dir, "Permutation")
     os.makedirs(summary_permutation_dir, exist_ok=True)
     
     writer_pair = pd.ExcelWriter(f"{summary_permutation_dir}/Permutation_top_pairs.xlsx")
