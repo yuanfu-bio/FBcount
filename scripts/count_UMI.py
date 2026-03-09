@@ -5,6 +5,7 @@ import json
 from copy import deepcopy
 import argparse
 from utils import read_json_config, read_fq, fa2dict, get_bc_umi_counts, write_dict_to_tsv, log_info
+from umi_tools.network import UMIClusterer
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="UMI Counting.")
@@ -91,36 +92,54 @@ def correct_umi(umi_count):
     return umi_correct_mapping
 
 
-def get_pibc_new_umis(dic_A):
-    '''step2'''
-    dic_B = deepcopy(dic_A)
-    # 定义一个新字典, 用来记录哪些umi得到了校正
+clusterer = UMIClusterer(cluster_method="directional")
+
+def get_pibc_new_umis_with_umitools(dic_A):
+    '''使用 UMI-tools 的 API 进行纠错'''
+    log_info("Step 5. Correcting UMIs using UMI-tools...")
+    dic_B = {}
     correct_list = {}
 
     n = 0
     dic_A_len = len(dic_A)
     progress_checkpoint = max(dic_A_len // 10, 1)
+
     for bc, umi_counts in dic_A.items():
         n += 1
         if n % progress_checkpoint == 0:
             log_info(f'Step 5. Finished correcting {n} barcode groups out of {dic_A_len}. Progress: {n / dic_A_len:.0%}')
-        umi_count_new = deepcopy(umi_counts)
-        umi_correct_mapping = correct_umi(umi_counts)
-
-        correct_list[bc] = umi_correct_mapping
-
-        for key, value in umi_correct_mapping.items():
-            umi_count_new[umi_correct_mapping[key]] += umi_counts[key]
-            umi_count_new[key] = 0
-                
-        umi_count_new_bak = deepcopy(umi_count_new)
-        for key, value in umi_count_new_bak.items():
-            if value == 0:
-                del umi_count_new[key]
         
-        dic_B[bc] = umi_count_new
-    return dic_B, correct_list
+        # UMI-tools 要求输入的 UMI 序列为 bytes 类型，需要转换一下
+        umi_counts_bytes = {k.encode('utf-8'): v for k, v in umi_counts.items()}
+        
+        # 调用 clusterer，返回的是一个嵌套列表，例如：[[b'AAAA', b'AAAT'], [b'CCCC']]
+        # 每个子列表代表一个聚类，列表的第一个元素是保留下来的真实 UMI（中心节点）
+        clusters = clusterer(umi_counts_bytes, threshold=1)
+        
+        umi_correct_mapping = {}
+        umi_count_new = {k: 0 for k in umi_counts.keys()}
+        
+        for cluster in clusters:
+            # cluster[0] 是丰度最高、被保留的原始 UMI
+            top_umi = cluster[0].decode('utf-8')
+            
+            # 将该聚类中的所有 UMI 的 counts 累加到 top_umi 上
+            cluster_total_count = sum(umi_counts[u.decode('utf-8')] for u in cluster)
+            umi_count_new[top_umi] = cluster_total_count
+            
+            # 记录被校正的 UMI（跳过 top_umi 自己）
+            for i in range(1, len(cluster)):
+                error_umi = cluster[i].decode('utf-8')
+                umi_correct_mapping[error_umi] = top_umi
+                
+        # 清理掉 count 为 0 的废弃 UMI
+        umi_count_new = {k: v for k, v in umi_count_new.items() if v > 0}
 
+        dic_B[bc] = umi_count_new
+        if umi_correct_mapping:
+            correct_list[bc] = umi_correct_mapping
+
+    return dic_B, correct_list
 
 def export_nested_dict_to_json(nested_dict, file_name):
     with open(file_name, 'w') as file:
@@ -168,7 +187,7 @@ if __name__ == "__main__":
     r2 = os.path.join(input_dir, f"{sample}_r2.fq.gz")
     total_reads, dic_A = get_pibc_raw_umis(r1, r2, barcode_start, barcode_end, umi_start, umi_end)
     
-    dic_B, correct_list = get_pibc_new_umis(dic_A)
+    dic_B, correct_list = get_pibc_new_umis_with_umitools(dic_A)
     per_bc_umi_count_a_correct = get_bc_umi_counts(dic_B)
     per_bc_umi_count_b_correct = get_bc_umi_counts(dic_A)
     output_results(per_barcode1_len, barcode2_dict, dic_A, dic_B, correct_list, per_bc_umi_count_a_correct, per_bc_umi_count_b_correct, total_reads, out_dir, sample)

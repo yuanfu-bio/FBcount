@@ -11,3 +11,4 @@ tqdm_joblib==0.0.5
 sklearn==1.7.1
 seaborn==0.13.2
 openpyxl==3.1.5
+umi_tools==1.1.6
