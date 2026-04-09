@@ -24,16 +24,30 @@ rmMP_dir=${output_dir}/${sample}/05_rmMP
 raw_r1="${input_dir}/${sample}/${sample}${r1_suffix}"
 raw_r2="${input_dir}/${sample}/${sample}${r2_suffix}"
 
-if [ ! -s ${output_dir}/${sample} ]; then
-    log_info "Step 1. Creat a working directory for ${sample}"
-    mkdir -p ${log_dir}
-    mkdir -p ${barcode_dir}
-    mkdir -p ${fastqs_dir}
-    mkdir -p ${counts_dir}
-    mkdir -p ${saturation_dir}
+# if [ ! -s ${output_dir}/${sample} ]; then
+#     log_info "Step 1. Creat a working directory for ${sample}"
+#     mkdir -p ${log_dir}
+#     mkdir -p ${barcode_dir}
+#     mkdir -p ${fastqs_dir}
+#     mkdir -p ${counts_dir}
+#     mkdir -p ${saturation_dir}
+
+#     if [ "$multi_pi" = true ]; then
+#         mkdir -p ${rmMP_dir}
+#     fi
+
+# else
+#     log_info "Step 1. Working directory has been created for ${sample}"
+# fi
+
+log_info "Step 1. Creat a working directory for ${sample}"
+mkdir -p ${log_dir}
+mkdir -p ${barcode_dir}
+mkdir -p ${fastqs_dir}
+mkdir -p ${counts_dir}
+mkdir -p ${saturation_dir}
+if [ "$multi_pi" = true ]; then
     mkdir -p ${rmMP_dir}
-else
-    log_info "Step 1. Working directory has been created for ${sample}"
 fi
 
 # 2. According to the linker, use cutadapt to get the initial barcode.

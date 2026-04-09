@@ -83,34 +83,41 @@ done
 # Wait all samples to complete
 wait
 
-# Aggregate results
 mkdir -p ${output_dir}/00_summary
-log_info "Aggregating results of this batch..."
-
-# Execute summary.py with collected parameters
-cmd="./scripts/summary.py \
-    -s \"${samples}\" \
-    -o \"${output_dir}\" \
-    -c \"${config}\""
-# Append multi-PI flag if enabled
-if [ "$multi_pi" = true ]; then
-    cmd="$cmd -mp"
+# Aggregate results
+if [ ! -s ${output_dir}/00_summary/summary.xlsx ]; then
+    log_info "Aggregating results of this batch..."
+    # Execute summary.py with collected parameters
+    cmd="./scripts/summary.py \
+        -s \"${samples}\" \
+        -o \"${output_dir}\" \
+        -c \"${config}\""
+    # Append multi-PI flag if enabled
+    if [ "$multi_pi" = true ]; then
+        cmd="$cmd -mp"
+    fi
+    # Run the command
+    eval $cmd
+else
+    log_info "Summary file already exists. Skipping aggregation step."
 fi
-# Run the command
-eval $cmd
 
 # Generate saturation reports
-saturation_template="./template/saturation.html"
-log_info "Aggregating saturation results of this batch..."
-./scripts/plot_saturation.py \
-    -s "${samples}" \
-    -o "${output_dir}" \
-    -t "${saturation_template}"
+if [ ! -s ${output_dir}/00_summary/saturation.html ]; then
+    saturation_template="./template/saturation.html"
+    log_info "Aggregating saturation results of this batch..."
+    ./scripts/plot_saturation.py \
+        -s "${samples}" \
+        -o "${output_dir}" \
+        -t "${saturation_template}"
+else
+    log_info "Saturation file already exists. Skipping saturation summary step."
+fi
 
 log_info "All samples have been processed."
 
 if [ "$multi_pi" = true ]; then    
-    if [ ! -s ${output_dir}/00_summary/Permutation/Permutation_z_scores.xlsx ]; then
+    if [ ! -s ${output_dir}/00_summary/Permutation/Permutation_z_score.xlsx ]; then
         log_info "run Permutation test..."
         ./scripts/permutation.py \
             -s "${samples}" \

@@ -107,14 +107,15 @@ if __name__ == "__main__":
         df_counts.set_index("Info", inplace=True)
         counts_dict[sample] = df_counts["Counts"]
 
-        # summary for FB counts afetr rmMP
-        df_rmMP_WL_file = f"{rmMP_dir}/df_rmMP_WL.tsv.gz"
-        df = pd.read_csv(df_rmMP_WL_file, sep="\t", compression="gzip")
-        df_counts_rmMP[sample] = df["Info"].value_counts().fillna(0).astype(int)
+        if args.mp:
+            # summary for FB counts afetr rmMP
+            df_rmMP_WL_file = f"{rmMP_dir}/df_rmMP_WL.tsv.gz"
+            df = pd.read_csv(df_rmMP_WL_file, sep="\t", compression="gzip")
+            df_counts_rmMP[sample] = df["Info"].value_counts().fillna(0).astype(int)
 
-        # calculate PB-UMI and PB-FB counts
-        pb_umis[sample] = df.groupby('PB')['UMI'].nunique().value_counts()
-        pb_fbs[sample] = df.groupby('PB')['FB_num'].nunique().value_counts()
+            # calculate PB-UMI and PB-FB counts
+            pb_umis[sample] = df.groupby('PB')['UMI'].nunique().value_counts()
+            pb_fbs[sample] = df.groupby('PB')['FB_num'].nunique().value_counts()
         
     df_meta = dict2df(meta_dict)
     df_counts = dict2df(counts_dict)

@@ -1,14 +1,19 @@
 #! /usr/bin/env python
 
+import os
+import numpy as np
+from joblib import Parallel, delayed
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
-import numba
-from scipy import sparse
-from sklearn.cluster import AgglomerativeClustering
-from scipy.cluster.hierarchy import dendrogram 
-import os
+from numba import njit
+from typing import Dict, List
+import logging
 import argparse
+
+from statsmodels.stats.multitest import fdrcorrection 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def setup_and_parse_args():
     parser = argparse.ArgumentParser(description="Barcode Validation.")
@@ -18,259 +23,183 @@ def setup_and_parse_args():
     args = parser.parse_args()
     return args
 
-class LargeScaleProteinAnalysis:
-    def __init__(self, matrix, sample):
+def load_single_df(sample, output_dir):
+    file_path = f"{output_dir}/{sample}/05_rmMP/df_rmMP_WL.tsv.gz"
+    df = pd.read_csv(file_path, sep="\t", compression="gzip")
+    return sample, df
+
+@njit(cache=True)
+def compute_single_permutation_swap(M_binary: np.ndarray, edges_times: int = 5, seed: int = 0) -> np.ndarray:
+
+    if seed != 0:
+        np.random.seed(seed)
         
-        if isinstance(matrix, pd.DataFrame):
-            self.matrix = matrix.values.astype(np.int8)
-            self.protein_names = matrix.columns.tolist()
-        else:
-            self.matrix = matrix.astype(np.int8)
-            self.protein_names = [f"Protein_{i}" for i in range(matrix.shape[1])]
-        
-        self.n_events, self.n_proteins = self.matrix.shape
-        print(f"{sample} 数据规模: {self.n_events} 次检测, {self.n_proteins} 种蛋白质")
-        
-        # 使用稀疏矩阵存储以节省内存
-        self.sample = sample
-        self.sparse_matrix = sparse.csr_matrix(self.matrix)
-        self.observed_cooccurrence = None
-        self.null_distributions = None
-        self.z_scores = None
-        self.p_values = None
+    M_rand = M_binary.copy()
+    row_indices, col_indices = np.where(M_rand == 1)
+    num_edges = len(row_indices)
     
-    @staticmethod
-    @numba.jit(nopython=True, parallel=True)
-    def fast_cooccurrence(matrix):
-        """使用numba加速的共现矩阵计算"""
-        n_proteins = matrix.shape[1]
-        cooccurrence = np.zeros((n_proteins, n_proteins))
+    if num_edges < 2:
+        return M_rand.T @ M_rand
         
-        for i in numba.prange(n_proteins):
-            for j in range(i + 1, n_proteins):
-                co_occur = 0
-                for k in range(matrix.shape[0]):
-                    if matrix[k, i] == 1 and matrix[k, j] == 1:
-                        co_occur += 1
-                cooccurrence[i, j] = co_occur
-                cooccurrence[j, i] = co_occur
-        
-        return cooccurrence
+    num_swaps = num_edges * edges_times 
     
-    def calculate_cooccurrence_fast(self, matrix):
-        """快速计算共现矩阵"""
-        return self.fast_cooccurrence(matrix)
-
-    def curveball_shuffle(self, matrix, n_trades_factor=5, seed=None):
-
-        if seed is not None:
-            np.random.seed(seed)
-
-        n_rows, n_cols = matrix.shape
-
-        # 将每行的 1 的列索引转换为集合
-        row_sets = [set(np.where(matrix[i] == 1)[0]) for i in range(n_rows)]
-
-        n_trades = n_trades_factor * n_rows
-
-        for _ in range(n_trades):
-            # 随机选两行
-            i, j = np.random.choice(n_rows, 2, replace=False)
-
-            A = row_sets[i]
-            B = row_sets[j]
-
-            # 行太类似就跳过
-            if len(A) == 0 or len(B) == 0:
-                continue
-
-            # 公共列
-            common = A & B
-
-            # 各自独有的列
-            Au = list(A - common)
-            Bu = list(B - common)
-
-            if len(Au) == 0 and len(Bu) == 0:
-                continue
-
-            # 合并 pool 并随机打乱
-            pool = Au + Bu
-            np.random.shuffle(pool)
-
-            # 根据原本独有列的数量重新分配
-            A_new = set(pool[:len(Au)]) | common
-            B_new = set(pool[len(Au):]) | common
-
-            row_sets[i] = A_new
-            row_sets[j] = B_new
-
-        # 转回矩阵
-        shuffled = np.zeros_like(matrix)
-        for i, cols in enumerate(row_sets):
-            shuffled[i, list(cols)] = 1
-
-        return shuffled
+    for _ in range(num_swaps):
+        idx1 = np.random.randint(0, num_edges)
+        idx2 = np.random.randint(0, num_edges)
         
-    def parallel_shuffle(self, n_permutations=100, n_jobs=-1):
-        print("开始并行 Monte Carlo 模拟...")
-
-        self.observed_cooccurrence = self.calculate_cooccurrence_fast(self.matrix)
-
-        def single_permutation(perm_id):
-            shuffled_matrix = self.curveball_shuffle(self.matrix)
-            return self.calculate_cooccurrence_fast(shuffled_matrix)
-
-        results = Parallel(n_jobs=n_jobs)(
-                delayed(single_permutation)(i)
-                for i in range(n_permutations))
-
-        self.null_distributions = np.array(results)
-        return self.null_distributions
-    
-    def calculate_p_values_fast(self):
-        """快速计算p值"""
-        if self.null_distributions is None:
-            raise ValueError("请先运行parallel_shuffle方法")
-        
-        p_values = np.zeros((self.n_proteins, self.n_proteins))
-        z_scores = np.zeros((self.n_proteins, self.n_proteins))
-        
-        for i in range(self.n_proteins):
-            for j in range(i + 1, self.n_proteins):
-                observed = self.observed_cooccurrence[i, j]
-                null_dist = self.null_distributions[:, i, j]
-                
-                # 使用更高效的p值计算
-                p_value = (np.sum(null_dist >= observed) + 1) / (len(null_dist) + 1)
-                p_values[i, j] = p_value
-                p_values[j, i] = p_value
-                
-                # 计算z-score
-                mean_null = np.mean(null_dist)
-                std_null = np.std(null_dist)
-                if std_null > 0:
-                    z_score = (observed - mean_null) / std_null
-                else:
-                    z_score = 0
-                z_scores[i, j] = z_score
-                z_scores[j, i] = z_score
+        if idx1 == idx2:
+            continue
             
-        self.z_scores = z_scores
-        self.p_values = p_values
+        r1, c1 = row_indices[idx1], col_indices[idx1]
+        r2, c2 = row_indices[idx2], col_indices[idx2]
         
-        # return p_values, z_scores
-    
-    def get_significant_pairs_fast(self, alpha=0.05, min_cooccurrence=10):
-        """快速获取显著共现的蛋白质对，可设置最小共现阈值"""
-        self.calculate_p_values_fast()
-        p_values = self.p_values
-        z_scores = self.z_scores
+        if (r1 != r2) and (c1 != c2) and (M_rand[r1, c2] == 0) and (M_rand[r2, c1] == 0):
+            M_rand[r1, c1], M_rand[r2, c2] = 0, 0
+            M_rand[r1, c2], M_rand[r2, c1] = 1, 1
+            col_indices[idx1], col_indices[idx2] = c2, c1
+
+    return M_rand.T @ M_rand
+
+class CoOccurrencePermutationTest:
+    def __init__(self, 
+                 n_permutations: int = 1000, 
+                 edges_times: int = 5, 
+                 n_jobs: int = -1):
+        self.n_permutations = n_permutations
+        self.edges_times = edges_times
+        self.n_jobs = n_jobs
+
+    def preprocess(self, df: pd.DataFrame, white_list: List[str], black_list: List[str]) -> pd.DataFrame:
+        df_clean = df.copy()
+        if white_list:
+            df_clean = df_clean[df_clean["Info"].isin(white_list)]
+        if black_list:
+            df_clean = df_clean[~df_clean["Info"].isin(black_list)]
+
+        df_unique = df_clean[['PB', 'Info']].drop_duplicates()
+        pb_counts = df_unique['PB'].value_counts()
+        valid_pbs = pb_counts[pb_counts >= 2].index
+        df_filtered = df_unique[df_unique['PB'].isin(valid_pbs)]
+
+        df_matrix = pd.crosstab(df_filtered['PB'], df_filtered['Info'])
+        df_matrix = df_matrix.clip(upper=1) 
+        return df_matrix
+
+    def fit_sample(self, df: pd.DataFrame, sample_name: str, white_list: List[str], black_list: List[str]) -> Dict:
+        logging.info(f"[{sample_name}] Original rows: {len(df)}")
         
-        significant_pairs = []
-        for i in range(self.n_proteins):
-            for j in range(i + 1, self.n_proteins):
-                if (p_values[i, j] < alpha and 
-                    self.observed_cooccurrence[i, j] >= min_cooccurrence):
-                    significant_pairs.append({
-                        'protein1': self.protein_names[i],
-                        'protein2': self.protein_names[j],
-                        'observed_cooccurrence': self.observed_cooccurrence[i, j],
-                        'expected_cooccurrence': np.mean(self.null_distributions[:, i, j]),
-                        'std_null': np.std(self.null_distributions[:, i, j]),
-                        'p_value': p_values[i, j],
-                        'z_score': z_scores[i, j],
-                        'fold_change': (self.observed_cooccurrence[i, j] + 1) / 
-                                     (np.mean(self.null_distributions[:, i, j]) + 1)
-                    })
+        df_matrix = self.preprocess(df, white_list, black_list)
+        if df_matrix.empty:
+            logging.warning(f"[{sample_name}] No valid data after filtering.")
+            return {}
+
+        cols = df_matrix.columns
+        n_cols = len(cols)
+        M_binary_real = df_matrix.values.astype(np.float32)
+        real_vals = M_binary_real.T @ M_binary_real
+
+        base_rng = np.random.default_rng(seed=42) 
+        seeds = base_rng.integers(0, 1e8, size=self.n_permutations)
+
+        # 1. 运行置换检验
+        random_matrices_list = Parallel(n_jobs=self.n_jobs)(
+            delayed(compute_single_permutation_swap)(M_binary_real, self.edges_times, seeds[i])
+            for i in tqdm(range(self.n_permutations), desc=f"Permuting {sample_name}", leave=False)
+        )
         
-        # 按p值排序
-        significant_pairs.sort(key=lambda x: x['z_score'])
-        return significant_pairs
+        random_matrices_array = np.array(random_matrices_list)
+        
+        # 2. 基础统计量
+        mean_rand = np.mean(random_matrices_array, axis=0)
+        std_rand = np.std(random_matrices_array, axis=0)
+        diff_matrix = real_vals - mean_rand
+        
+        with np.errstate(divide='ignore', invalid='ignore'):
+            z_score_matrix = np.divide(diff_matrix, std_rand, out=np.zeros_like(diff_matrix), where=std_rand != 0)
 
-def cluster_proteins(Z):
-    model = AgglomerativeClustering(
-        metric="euclidean",     # 新版参数
-        linkage="average",
-        n_clusters=None,
-        distance_threshold=0     # 输出完整层次结构
-    )
-    model.fit(Z)
+        # ==========================================
+        # 核心优化：计算经验 P 值、FDR 和 Log2FC
+        # ==========================================
+        
+        # 3. 经验 P 值 (Empirical P-value)
+        # 计算富集(互作) P值: 随机打乱中，大于等于实际观测值的比例
+        p_val_enrich = np.sum(random_matrices_array >= real_vals, axis=0) / self.n_permutations
+        # 为了避免 P=0 导致下游对数计算报错，通常加上伪计数 1/N
+        p_val_enrich = np.maximum(p_val_enrich, 1 / self.n_permutations)
 
-    linkage_matrix = np.column_stack([
-        model.children_,
-        model.distances_,
-        np.zeros(model.children_.shape[0])
-    ])
+        # 计算排斥(互斥) P值: 随机打乱中，小于等于实际观测值的比例
+        p_val_deplete = np.sum(random_matrices_array <= real_vals, axis=0) / self.n_permutations
+        p_val_deplete = np.maximum(p_val_deplete, 1 / self.n_permutations)
 
-    dendro = dendrogram(linkage_matrix, no_plot=True)
-    order = dendro["leaves"]
-    return order
+        # 4. 效应量 (Log2 Fold Change)
+        # 加上伪计数 1 避免 log2(0)，反映观测共现是随机期望的多少倍
+        log2fc_matrix = np.log2((real_vals + 1) / (mean_rand + 1))
 
+        # 5. FDR 多重假设检验校正 (只针对上三角矩阵计算，避免对称矩阵导致惩罚过重)
+        iu = np.triu_indices(n_cols, k=1) # 提取上三角索引（不包含对角线）
+        
+        q_val_enrich = np.ones((n_cols, n_cols))
+        q_val_deplete = np.ones((n_cols, n_cols))
+        
+        if len(iu[0]) > 0:
+            # 对富集和排斥分别进行 FDR 校正
+            _, q_upper_enrich = fdrcorrection(p_val_enrich[iu])
+            _, q_upper_deplete = fdrcorrection(p_val_deplete[iu])
+            
+            # 还原为对称矩阵
+            q_val_enrich[iu] = q_upper_enrich
+            q_val_enrich.T[iu] = q_upper_enrich
+            q_val_deplete[iu] = q_upper_deplete
+            q_val_deplete.T[iu] = q_upper_deplete
+
+        # 清理对角线 (自身与自身比较无意义)
+        for mat in [diff_matrix, z_score_matrix, std_rand, p_val_enrich, p_val_deplete, q_val_enrich, q_val_deplete, log2fc_matrix]:
+            np.fill_diagonal(mat, np.nan)
+
+        return {
+            "real": pd.DataFrame(real_vals, index=cols, columns=cols), 
+            "z_score": pd.DataFrame(z_score_matrix, index=cols, columns=cols),
+            "diff": pd.DataFrame(diff_matrix, index=cols, columns=cols),
+            "std_rand": pd.DataFrame(std_rand, index=cols, columns=cols),
+            "log2fc": pd.DataFrame(log2fc_matrix, index=cols, columns=cols),
+            "p_enrich": pd.DataFrame(p_val_enrich, index=cols, columns=cols),
+            "q_enrich": pd.DataFrame(q_val_enrich, index=cols, columns=cols),
+            "p_deplete": pd.DataFrame(p_val_deplete, index=cols, columns=cols),
+            "q_deplete": pd.DataFrame(q_val_deplete, index=cols, columns=cols),
+        }
 
 if __name__ == "__main__":
     args = setup_and_parse_args()
-    summary_dir = os.path.join(args.output, "00_summary")
+    output_dir = args.output
+    summary_dir = os.path.join(output_dir, "00_summary")
     summary_permutation_dir = os.path.join(summary_dir, "Permutation")
     os.makedirs(summary_permutation_dir, exist_ok=True)
-    
-    writer_pair = pd.ExcelWriter(f"{summary_permutation_dir}/Permutation_top_pairs.xlsx")
-    writer_z = pd.ExcelWriter(f"{summary_permutation_dir}/Permutation_z_scores.xlsx") 
-    writer_p = pd.ExcelWriter(f"{summary_permutation_dir}/Permutation_p_scores.xlsx")
 
-    for sample in args.samples.split():
-        rmMP_dir = os.path.join(args.output, sample,"05_rmMP")
-        permutation_dir = os.path.join(args.output, sample,"06_permutation")
-        os.makedirs(permutation_dir, exist_ok=True)
+    samples = args.samples.split()
+    samples.sort()
 
-        df_rmMP_WL_file = f"{rmMP_dir}/df_rmMP_WL.tsv.gz"
-        df_rmMP_WL = pd.read_csv(df_rmMP_WL_file, sep="\t", compression="gzip")
-        df_matrix = df_rmMP_WL.pivot_table(index='PB', columns='Info', values='UMI', aggfunc='nunique', fill_value=0)
-        df_binary = df_matrix.copy()
-        df_binary[df_binary > 0] = 1
-        df_binary = df_binary[df_binary.sum(axis=1) > 1]
+    # 读取移除MP白名单中的数据
+    results = Parallel(n_jobs=-1)(
+        delayed(load_single_df)(sample, output_dir) for sample in tqdm(samples)
+    )
+    dfs = dict(results)
 
-        print(f"Binary matrix shape: {df_binary.shape}")
-        random_seed = 42
-        np.random.seed(random_seed)
-        n_permutations=100
-        max_samples = 10000
-        n_jobs=21
-        data = df_binary.sample(n=min(max_samples, len(df_binary)), random_state=random_seed)
-        
-        analyzer = LargeScaleProteinAnalysis(data, sample)
-        analyzer.parallel_shuffle(n_permutations=n_permutations, n_jobs=n_jobs)
+    N_PERMUTATIONS = 1000
+    white_list = []
+    black_list = []
 
-        results = analyzer.get_significant_pairs_fast(alpha=1, min_cooccurrence=10)
+    tester = CoOccurrencePermutationTest(n_permutations=N_PERMUTATIONS, n_jobs=-1)
 
-        # 1. 保存 pairs
-        results_df = pd.DataFrame(results)
-        if not results_df.empty:
-            results_df.sort_values(by='z_score', ascending=False, inplace=True)
-            results_df.to_excel(writer_pair, sheet_name=sample, index=False)
-            results_df.to_csv(f"{permutation_dir}/{sample}_top_pairs.csv", index=False)
+    results = {}
+    for sample in samples:
+        results[sample] = tester.fit_sample(dfs[sample], sample, white_list, black_list)
+        logging.info(f"[{sample}] Done.")
 
-            # 2. 获取原始数据
-            Z_raw = analyzer.z_scores.copy()
-            P_raw = analyzer.p_values.copy()
-            names_raw = np.array(analyzer.protein_names)
-
-            np.fill_diagonal(Z_raw, 0)
-
-            # 3. 计算聚类顺序 (在 log 后的数据上聚类通常效果更好)
-            Z_scaled = np.sign(Z_raw) * np.log1p(np.abs(Z_raw))
-            order = cluster_proteins(Z_scaled)
-
-            # 4. 根据聚类结果重排矩阵
-            Z_ordered = Z_raw[np.ix_(order, order)]
-            P_ordered = P_raw[np.ix_(order, order)]
-            names_ordered = names_raw[order]
-
-            # 5. 保存重排后的矩阵到 Excel
-            pd.DataFrame(Z_ordered, index=names_ordered, columns=names_ordered).to_excel(writer_z, sheet_name=sample)
-            pd.DataFrame(P_ordered, index=names_ordered, columns=names_ordered).to_excel(writer_p, sheet_name=sample)
-            pd.DataFrame(Z_ordered, index=names_ordered, columns=names_ordered).to_csv(f"{permutation_dir}/{sample}_z_scores.csv")
-            pd.DataFrame(P_ordered, index=names_ordered, columns=names_ordered).to_csv(f"{permutation_dir}/{sample}_p_values.csv")
-    writer_pair.close()
-    writer_z.close()
-    writer_p.close()
+    metrics = ['real', 'z_score', 'diff', 'std_rand', 'log2fc', 'p_enrich', 'q_enrich', 'p_deplete', 'q_deplete']
+    for metric in metrics:
+        file_name = f"{summary_permutation_dir}/Permutation_{metric}.xlsx"
+        with pd.ExcelWriter(file_name) as writer:
+            for sample_name, data_dict in results.items():
+                df = data_dict[metric]
+                sheet_name = sample_name[:31] 
+                df.to_excel(writer, sheet_name=sheet_name)

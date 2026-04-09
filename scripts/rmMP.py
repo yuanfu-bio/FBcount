@@ -112,20 +112,16 @@ if __name__ == "__main__":
     output_dir = args.output_dir
     sample = args.sample
     config = read_json_config(args.config)
-    print(sample)
 
     FB_info_file = config["feature_barcode_info"]
     FB_info_all_file = config["feature_barcode"]
 
     FB_info = pd.read_csv(FB_info_file, sep="\t", header=None)
     FB_info.columns = ["FB_num", "FB", "Info"]
-    print(FB_info.head())
 
     FB_info_all = fa2df(FB_info_all_file, col_names=["FB_num", "FB"])
 
     json_file = os.path.join(input_dir, f"{sample}_dic_after_downsample.json")
-
-    print(json_file)
     
     df_cleaned, df_cleaned_WL, FB_not_in_WL, stats_df = rmMP(json_file, FB_info, FB_info_all, sample)
 
